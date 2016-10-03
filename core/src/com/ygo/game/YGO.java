@@ -16,6 +16,7 @@ public class YGO extends ApplicationAdapter {
     static OrthographicCamera camera;
 	SpriteBatch batch;
     Field field;
+    Hand p1Hand, p2Hand;
 	
 	@Override
 	public void create() {
@@ -36,9 +37,12 @@ public class YGO extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         field.renderGrid();
+        batch.begin();
+        field.renderCards(batch);
+        batch.end();
 	}
-	
-	@Override
+
+    @Override
 	public void dispose() {
 		batch.dispose();
 	}
