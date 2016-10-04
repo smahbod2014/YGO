@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 public class Card {
 
     Texture image;
+    boolean isHovering;
 
     /**
      *
@@ -18,6 +19,8 @@ public class Card {
     }
 
     public void draw(SpriteBatch sb, float x, float y, float width, float height) {
+        if (isHovering)
+            y += 30.0f; //temporary hardcoded value
         sb.draw(image, x, y, width, height);
     }
 
