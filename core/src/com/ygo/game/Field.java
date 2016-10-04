@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
 
@@ -55,7 +56,7 @@ public class Field {
         OPPONENT_PLAYER_SPELL_TRAP_BASE.set(CURRENT_PLAYER_MONSTER_BASE).add(0, CELL_HEIGHT + MIDDLE_DIVIDE);
         OPPONENT_PLAYER_MONSTER_BASE.set(OPPONENT_PLAYER_SPELL_TRAP_BASE).add(0, CELL_HEIGHT);
 
-        tempCard = new Card("75646520");
+        tempCard = new Card("75646520", CardType.TRAP);
     }
 
     public Vector2 getCenter() {
@@ -83,6 +84,7 @@ public class Field {
     }
 
     public void renderGrid() {
+        sr.setProjectionMatrix(YGO.camera.combined);
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.RED);
         sr.line(YGO.WINDOW_WIDTH/2, YGO.WINDOW_HEIGHT, YGO.WINDOW_WIDTH/2, 0);
