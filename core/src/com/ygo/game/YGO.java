@@ -3,11 +3,14 @@ package com.ygo.game;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
@@ -23,10 +26,10 @@ import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 
-public class YGO extends ApplicationAdapter {
+public class YGO extends ApplicationAdapter implements InputProcessor {
 
-	public static int WINDOW_WIDTH = 250;
-    public static int WINDOW_HEIGHT = 140;
+	public static int WINDOW_WIDTH = 1500;
+    public static int WINDOW_HEIGHT = WINDOW_WIDTH*9/16;
 
     static boolean isCardMenuShowing;
     static OrthographicCamera camera;
@@ -34,6 +37,8 @@ public class YGO extends ApplicationAdapter {
     static Field field;
     static Hand[] hands = new Hand[2];
 
+    Vector2 mouseDown = new Vector2();
+    static boolean mouseClicked = false;
     Skin skin;
     Stage stage;
     static Table monsterTable;
@@ -57,13 +62,14 @@ public class YGO extends ApplicationAdapter {
         initCardMenus();
 
         hands[0] = new Hand(0.75f, PlayerType.CURRENT_PLAYER);
-        hands[0].addCard(new Card("75646520", CardType.TRAP));
-        hands[0].addCard(new Card("75652080", CardType.SPELL));
-        hands[0].addCard(new Card("75673220", CardType.MONSTER));
-        hands[0].addCard(new Card("75675029", CardType.MONSTER));
-        hands[0].addCard(new Card("75732622", CardType.MONSTER));
+        hands[0].addCard(new Card("3573512", CardType.MONSTER));
+        hands[0].addCard(new Card("7489323", CardType.MONSTER));
+        hands[0].addCard(new Card("80770678", CardType.MONSTER));
+        hands[0].addCard(new Card("88819587", CardType.MONSTER));
+        hands[0].addCard(new Card("93013676", CardType.MONSTER));
 
-        Gdx.input.setInputProcessor(stage);
+        InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
+        Gdx.input.setInputProcessor(multiplexer);
 	}
 
     private void initCardMenus() {
@@ -125,6 +131,8 @@ public class YGO extends ApplicationAdapter {
         if (Gdx.input.justTouched()) {
             Gdx.app.log("YGO", "Game touched");
         }
+
+        mouseClicked = false;
 	}
 
     //TODO: Come back to resizing
@@ -141,6 +149,54 @@ public class YGO extends ApplicationAdapter {
         stage.dispose();
         skin.dispose();
 	}
+
+    public static boolean clicked() {
+        return mouseClicked;
+    }
+
+    @Override
+    public boolean keyDown(int keycode) {
+        return false;
+    }
+
+    @Override
+    public boolean keyUp(int keycode) {
+        return false;
+    }
+
+    @Override
+    public boolean keyTyped(char character) {
+        return false;
+    }
+
+    @Override
+    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        mouseDown.set(screenX, screenY);
+        return false;
+    }
+
+    @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        Vector2 current = new Vector2(screenX, screenY);
+        if (current.dst(mouseDown) <= Utils.sx(5))
+            mouseClicked = true;
+        return false;
+    }
+
+    @Override
+    public boolean touchDragged(int screenX, int screenY, int pointer) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseMoved(int screenX, int screenY) {
+        return false;
+    }
+
+    @Override
+    public boolean scrolled(int amount) {
+        return false;
+    }
 
     public static void info(String message) {
         Gdx.app.log("YGO", message);

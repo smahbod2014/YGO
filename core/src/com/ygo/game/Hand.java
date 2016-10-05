@@ -1,6 +1,7 @@
 package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -74,7 +75,7 @@ public class Hand {
             if (card.location == Location.HAND && card.contains(mousePos)) {
                 card.isHovering = true;
                 //detect click
-                if (Gdx.input.justTouched()) {
+                if (YGO.clicked()) {
                     YGO.showCardMenu(card);
                     cardWasClicked = true;
                 }
@@ -84,7 +85,7 @@ public class Hand {
             }
         }
 
-        if (Gdx.input.justTouched() && !cardWasClicked) {
+        if (YGO.clicked() && !cardWasClicked) {
             YGO.hideCardMenus();
         }
     }
