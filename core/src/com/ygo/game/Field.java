@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.ygo.game.Types.CardType;
+import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
 
@@ -30,14 +31,15 @@ public class Field {
 
     private ShapeRenderer sr;
     private Vector2 center;
-    private Array<Card> p1MonsterZone = new Array<Card>();
-    private Array<Card> p1SpellTrapZone = new Array<Card>();
-    private Array<Card> p1Deck = new Array<Card>();
-    private Array<Card> p1Graveyard = new Array<Card>();
-    private Array<Card> p2MonsterZone = new Array<Card>();
-    private Array<Card> p2SpellTrapZone = new Array<Card>();
-    private Array<Card> p2Deck = new Array<Card>();
-    private Array<Card> p2Graveyard = new Array<Card>();
+//    private Card[] p1MonsterZone = new Card[CELLS_IN_ROW];
+//    private Card[] p1SpellTrapZone = new Card[CELLS_IN_ROW];
+//    private Card[] p1Deck = new Card[CELLS_IN_ROW];
+//    private Card[] p1Graveyard = new Card[CELLS_IN_ROW];
+//    private Card[] p2MonsterZone = new Card[CELLS_IN_ROW];
+//    private Card[] p2SpellTrapZone = new Card[CELLS_IN_ROW];
+//    private Card[] p2Deck = new Card[CELLS_IN_ROW];
+//    private Card[] p2Graveyard = new Card[CELLS_IN_ROW];
+    private Card[][][] allCards = new Card[2][ZoneType.values().length][CELLS_IN_ROW];
 
     //temp variables
     private Card tempCard;
@@ -83,6 +85,35 @@ public class Field {
         return base;
     }
 
+    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide) {
+        Card[] zone = getZone(destination, playerSide);
+        int firstAvailable = getEmptyCell(zone);
+        zone[firstAvailable] = card;
+        card.location = Location.FIELD;
+        YGO.debug("Card placed on field at " + getCardPositionInZone(playerSide, destination, firstAvailable));
+        //this is where we would fire "onSummon" events
+    }
+
+    /**
+     * Fetches an empty cell in a zone. Up to the user whether it's the first empty
+     * cell, a random empty cell, etc.
+     * @param zone
+     * @return
+     */
+    private int getEmptyCell(Card[] zone) {
+        // subject to different implementations
+        for (int i = 0; i < zone.length; i++) {
+            if (zone[i] == null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private Card[] getZone(ZoneType zone, PlayerType player) {
+        return allCards[player.index][zone.index];
+    }
+
     public void renderGrid() {
         sr.setProjectionMatrix(YGO.camera.combined);
         sr.begin(ShapeRenderer.ShapeType.Line);
@@ -107,7 +138,19 @@ public class Field {
     }
 
     public void renderCards(SpriteBatch sb) {
-        Vector2 pos = getCardPositionInZone(PlayerType.CURRENT_PLAYER, ZoneType.SPELL_TRAP, 3);
-        tempCard.draw(sb, pos.x, pos.y, CARD_WIDTH_IN_CELL, CARD_HEIGHT_IN_CELL);
+//        Vector2 pos = getCardPositionInZone(PlayerType.CURRENT_PLAYER, ZoneType.SPELL_TRAP, 3);
+//        tempCard.draw(sb, pos.x, pos.y, CARD_WIDTH_IN_CELL, CARD_HEIGHT_IN_CELL);
+        for (int p = 0; p < allCards.length; p++) {
+            Card[][] zones = allCards[p];
+            for (int z = 0; z < zones.length; z++) {
+                Card[] cards = zones[z];
+                for (int c = 0; c < cards.length; c++) {
+                    if (cards[c] != null) {
+                        Vector2 pos = getCardPositionInZone(PlayerType.indexToPlayer(p), ZoneType.indexToZone(z), c);
+                        cards[c].draw(sb, pos.x, pos.y, CARD_WIDTH_IN_CELL, CARD_HEIGHT_IN_CELL);
+                    }
+                }
+            }
+        }
     }
 }

@@ -15,7 +15,7 @@ public class Utils {
      * @return
      */
     public static float sx(float x) {
-        return x / 1280.0f * YGO.WINDOW_WIDTH;
+        return x / TARGET_WIDTH * YGO.WINDOW_WIDTH;
     }
 
     /**
@@ -24,15 +24,15 @@ public class Utils {
      * @return
      */
     public static float sy(float y) {
-        return y / 720.0f * YGO.WINDOW_HEIGHT;
+        return y / TARGET_HEIGHT * YGO.WINDOW_HEIGHT;
     }
 
     public static float getCurrentWindowScaleX() {
-        return (float) Gdx.graphics.getWidth() / TARGET_WIDTH;
+        return width() / TARGET_WIDTH;
     }
 
     public static float getCurrentWindowScaleY() {
-        return (float) Gdx.graphics.getHeight() / TARGET_HEIGHT;
+        return height() / TARGET_HEIGHT;
     }
 
     public static float width() {

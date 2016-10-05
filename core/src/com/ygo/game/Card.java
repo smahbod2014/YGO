@@ -38,7 +38,7 @@ public class Card {
     }
 
     public void draw(SpriteBatch sb, float x, float y, float width, float height) {
-        if (isHovering)
+        if (location == Location.HAND && isHovering)
             y += 30.0f; //temporary hardcoded value
         sb.draw(image, x, y, width, height);
     }

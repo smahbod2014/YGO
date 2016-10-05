@@ -18,22 +18,27 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ScalingViewport;
 import com.ygo.game.Types.CardType;
+import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.ZoneType;
+import com.ygo.game.listeners.NormalSummonButtonListener;
 
 public class YGO extends ApplicationAdapter {
 
-	public static int WINDOW_WIDTH = 1280;
-    public static int WINDOW_HEIGHT = 720;
+	public static int WINDOW_WIDTH = 250;
+    public static int WINDOW_HEIGHT = 140;
 
     static boolean isCardMenuShowing;
     static OrthographicCamera camera;
 	SpriteBatch batch;
-    Field field;
-    Hand p1Hand, p2Hand;
+    static Field field;
+    static Hand[] hands = new Hand[2];
 
     Skin skin;
     Stage stage;
     static Table monsterTable;
+    static Card currentlySelectedCard;
+    static PlayerType turnPlayer = PlayerType.CURRENT_PLAYER;
 	
 	@Override
 	public void create() {
@@ -51,26 +56,26 @@ public class YGO extends ApplicationAdapter {
         stage = new Stage(new ScalingViewport(Scaling.fit, WINDOW_WIDTH, WINDOW_HEIGHT));
         initCardMenus();
 
-        p1Hand = new Hand(0.75f, PlayerType.CURRENT_PLAYER);
-        p1Hand.addCard(new Card("75646520", CardType.TRAP));
-        p1Hand.addCard(new Card("75652080", CardType.SPELL));
-        p1Hand.addCard(new Card("75673220", CardType.MONSTER));
-        p1Hand.addCard(new Card("75675029", CardType.MONSTER));
-        p1Hand.addCard(new Card("75732622", CardType.MONSTER));
+        hands[0] = new Hand(0.75f, PlayerType.CURRENT_PLAYER);
+        hands[0].addCard(new Card("75646520", CardType.TRAP));
+        hands[0].addCard(new Card("75652080", CardType.SPELL));
+        hands[0].addCard(new Card("75673220", CardType.MONSTER));
+        hands[0].addCard(new Card("75675029", CardType.MONSTER));
+        hands[0].addCard(new Card("75732622", CardType.MONSTER));
 
         Gdx.input.setInputProcessor(stage);
 	}
 
     private void initCardMenus() {
         monsterTable = new Table();
-        TextButton activate = new TextButton("Active", skin);
+        TextButton activate = new TextButton("Activate", skin);
         activate.setWidth(Utils.sx(100));
         activate.setHeight(Utils.sy(30));
         activate.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
         activate.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                info("Active clicked");
+                info("Activate clicked");
             }
         });
 
@@ -78,12 +83,7 @@ public class YGO extends ApplicationAdapter {
         ns.setWidth(Utils.sx(100));
         ns.setHeight(Utils.sy(30));
         ns.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
-        ns.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                info("Normal Summon clicked");
-            }
-        });
+        ns.addListener(new NormalSummonButtonListener());
 
         TextButton set = new TextButton("Set", skin);
         set.setWidth(Utils.sx(100));
@@ -110,13 +110,13 @@ public class YGO extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         float dt = Gdx.graphics.getDeltaTime();
-        p1Hand.handleInput(dt);
+        hands[0].handleInput(dt);
 
         field.renderGrid();
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
         field.renderCards(batch);
-        p1Hand.draw(batch);
+        hands[0].draw(batch);
         batch.end();
 
         stage.act(dt);
@@ -127,6 +127,7 @@ public class YGO extends ApplicationAdapter {
         }
 	}
 
+    //TODO: Come back to resizing
 //    @Override
 //    public void resize(int width, int height) {
 //        WINDOW_WIDTH = width;
@@ -145,7 +146,12 @@ public class YGO extends ApplicationAdapter {
         Gdx.app.log("YGO", message);
     }
 
+    public static void debug(String message) {
+        Gdx.app.debug("YGO", message);
+    }
+
     public static void showCardMenu(Card card) {
+        currentlySelectedCard = card;
         isCardMenuShowing = true;
         switch (card.cardType) {
             case MONSTER:
@@ -158,5 +164,13 @@ public class YGO extends ApplicationAdapter {
     public static void hideCardMenus() {
         monsterTable.setVisible(false);
         isCardMenuShowing = false;
+    }
+
+    public static void performNormalSummon() {
+        Hand hand = hands[turnPlayer.index];
+        if (currentlySelectedCard.location == Location.HAND) {
+            hand.removeCard(currentlySelectedCard);
+        }
+        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer);
     }
 }

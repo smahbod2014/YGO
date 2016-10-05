@@ -28,6 +28,11 @@ public class Hand {
         refreshCardPositions();
     }
 
+    public void removeCard(Card card) {
+        cards.removeValue(card, true);
+        refreshCardPositions();
+    }
+
     private void refreshCardPositions() {
         //"advance" is the distance between cards plus the card width
         float advance = 0;
