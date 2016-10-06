@@ -3,11 +3,13 @@ package com.ygo.game;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
@@ -20,11 +22,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ScalingViewport;
+import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.SummonType;
 import com.ygo.game.Types.ZoneType;
+import com.ygo.game.listeners.ActivateButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
+import com.ygo.game.listeners.SetButtonListener;
 
 public class YGO extends ApplicationAdapter implements InputProcessor {
 
@@ -61,6 +67,8 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         stage = new Stage(new ScalingViewport(Scaling.fit, WINDOW_WIDTH, WINDOW_HEIGHT));
         initCardMenus();
 
+        Card.FACE_DOWN_CARD = new Sprite(new Texture("cards/cover.jpg"));
+
         hands[0] = new Hand(0.75f, PlayerType.CURRENT_PLAYER);
         hands[0].addCard(new Card("3573512", CardType.MONSTER));
         hands[0].addCard(new Card("7489323", CardType.MONSTER));
@@ -78,12 +86,7 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         activate.setWidth(Utils.sx(100));
         activate.setHeight(Utils.sy(30));
         activate.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
-        activate.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                info("Activate clicked");
-            }
-        });
+        activate.addListener(new ActivateButtonListener());
 
         TextButton ns = new TextButton("Normal Summon", skin);
         ns.setWidth(Utils.sx(100));
@@ -95,12 +98,7 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         set.setWidth(Utils.sx(100));
         set.setHeight(Utils.sy(30));
         set.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
-        set.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                info("Set clicked");
-            }
-        });
+        set.addListener(new SetButtonListener());
 
         monsterTable.add(activate).fill().row();
         monsterTable.add(ns).fill().row();
@@ -128,10 +126,7 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         stage.act(dt);
         stage.draw();
 
-        if (Gdx.input.justTouched()) {
-            Gdx.app.log("YGO", "Game touched");
-        }
-
+        //reset mouse click event
         mouseClicked = false;
 	}
 
@@ -171,15 +166,20 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        mouseDown.set(screenX, screenY);
+        if (button == Input.Buttons.LEFT) {
+            mouseDown.set(screenX, screenY);
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
         Vector2 current = new Vector2(screenX, screenY);
-        if (current.dst(mouseDown) <= Utils.sx(5))
+        if (button == Input.Buttons.LEFT && current.dst(mouseDown) <= Utils.sx(5)) {
             mouseClicked = true;
+            return true;
+        }
         return false;
     }
 
@@ -223,10 +223,22 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
     }
 
     public static void performNormalSummon() {
+        performSummon(SummonType.NORMAL_SUMMON, CardPlayMode.FACE_UP | CardPlayMode.ATTACK_MODE);
+    }
+
+    public static void performEffectActivation() {
+        info("performEffectActivation not implemented");
+    }
+
+    public static void performSet() {
+        performSummon(SummonType.SET, CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE);
+    }
+
+    private static void performSummon(SummonType summonType, int cardPlayMode) {
         Hand hand = hands[turnPlayer.index];
         if (currentlySelectedCard.location == Location.HAND) {
             hand.removeCard(currentlySelectedCard);
         }
-        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer);
+        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode);
     }
 }

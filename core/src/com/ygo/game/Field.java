@@ -1,11 +1,9 @@
 package com.ygo.game;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
@@ -85,11 +83,12 @@ public class Field {
         return base;
     }
 
-    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide) {
+    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, int cardPlayMode) {
         Card[] zone = getZone(destination, playerSide);
         int firstAvailable = getEmptyCell(zone);
         zone[firstAvailable] = card;
         card.location = Location.FIELD;
+        card.playMode = cardPlayMode;
         YGO.debug("Card placed on field at " + getCardPositionInZone(playerSide, destination, firstAvailable));
         //this is where we would fire "onSummon" events
     }

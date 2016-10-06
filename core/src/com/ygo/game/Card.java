@@ -2,18 +2,22 @@ package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 
 public class Card {
 
     public static final Vector2 SIZE_IN_HAND = new Vector2(Utils.sx(128 * .75f), Utils.sy(128));
+    public static Sprite FACE_DOWN_CARD;
 
     Texture image;
     boolean isHovering;
+    int playMode;
     Location location = Location.HAND;
     Vector2 positionInHand = new Vector2();
 
@@ -38,9 +42,16 @@ public class Card {
     }
 
     public void draw(SpriteBatch sb, float x, float y, float width, float height) {
-        if (location == Location.HAND && isHovering)
-            y += 30.0f; //temporary hardcoded value
-        sb.draw(image, x, y, width, height);
+        if (CardPlayMode.isFaceDown(playMode)) {
+            //TODO: Will need additional logic here to determine if monster or spell trap, since spell trap are vertical
+            FACE_DOWN_CARD.setBounds(x, y, width, height);
+            FACE_DOWN_CARD.setOriginCenter();
+            FACE_DOWN_CARD.setRotation(90);
+            FACE_DOWN_CARD.draw(sb);
+        }
+        else {
+            sb.draw(image, x, y, width, height);
+        }
     }
 
     public void draw(SpriteBatch sb) {
