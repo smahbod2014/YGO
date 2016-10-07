@@ -12,7 +12,7 @@ import com.ygo.game.Types.Location;
 
 public class Card {
 
-    public static final Vector2 SIZE_IN_HAND = new Vector2(Utils.sx(128 * .75f), Utils.sy(128));
+    public static final Vector2 SIZE_IN_HAND = new Vector2(128 * .75f, 128);
     public static Sprite FACE_DOWN_CARD;
 
     Texture image;
@@ -38,7 +38,11 @@ public class Card {
 
     public boolean contains(Vector2 p) {
         Rectangle r = new Rectangle(positionInHand.x, positionInHand.y, SIZE_IN_HAND.x, SIZE_IN_HAND.y);
-        return r.contains(p);
+        if (r.contains(p)) {
+            return true;
+        }
+//        return r.contains(p);
+        return false;
     }
 
     public void draw(SpriteBatch sb, float x, float y, float width, float height) {
@@ -58,7 +62,7 @@ public class Card {
         if (location == Location.HAND) {
             float y = positionInHand.y;
             if (isHovering)
-                y += Utils.sy(30);
+                y += 30;
             sb.draw(image, positionInHand.x, y, SIZE_IN_HAND.x, SIZE_IN_HAND.y);
         }
     }

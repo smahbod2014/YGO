@@ -1,7 +1,6 @@
 package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -11,7 +10,7 @@ import com.ygo.game.Types.PlayerType;
 
 public class Hand {
     public static final int CARD_LIMIT = 7;
-    public static final float CARD_GAP = Utils.sx(15);
+    public static final float CARD_GAP = 15;
 
     private Array<Card> cards = new Array<Card>();
 
@@ -19,7 +18,7 @@ public class Hand {
     private PlayerType player;
 
     public Hand(float centerX, PlayerType player) {
-        this.centerX = YGO.WINDOW_WIDTH * centerX;
+        this.centerX = YGO.GAME_WIDTH * centerX;
         this.player = player;
     }
 
@@ -66,10 +65,7 @@ public class Hand {
     }
 
     public void handleInput(float dt) {
-        Vector3 mouse = new Vector3(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY(), 0);
-        YGO.camera.project(mouse);
-        Vector2 mousePos = new Vector2(mouse.x, mouse.y);
-
+        Vector2 mousePos = Utils.getMousePos();
         boolean cardWasClicked = false;
         for (Card card : cards) {
             if (card.location == Location.HAND && card.contains(mousePos)) {

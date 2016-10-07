@@ -6,26 +6,8 @@ import com.badlogic.gdx.math.Vector3;
 
 public class Utils {
 
-    public static final int TARGET_WIDTH = 1280;
-    public static final int TARGET_HEIGHT = 720;
-
-    /**
-     * Converts an absolute horizontal pixel value to a scaled pixel value
-     * @param x
-     * @return
-     */
-    public static float sx(float x) {
-        return x / TARGET_WIDTH * YGO.WINDOW_WIDTH;
-    }
-
-    /**
-     * Converts an absolute vertical pixel value to a scaled value
-     * @param y
-     * @return
-     */
-    public static float sy(float y) {
-        return y / TARGET_HEIGHT * YGO.WINDOW_HEIGHT;
-    }
+    public static final int TARGET_WIDTH = 1;
+    public static final int TARGET_HEIGHT = 1;
 
     public static float getCurrentWindowScaleX() {
         return width() / TARGET_WIDTH;
@@ -43,9 +25,17 @@ public class Utils {
         return Gdx.graphics.getHeight();
     }
 
+    public static float convertX(float x) {
+        return x * YGO.GAME_WIDTH / Gdx.graphics.getWidth();
+    }
+
+    public static float convertY(float y) {
+        return y * YGO.GAME_HEIGHT / Gdx.graphics.getHeight();
+    }
+
     public static Vector2 getMousePos() {
-        Vector3 m = new Vector3(Gdx.input.getX(), height() - Gdx.input.getY(), 0);
-        YGO.camera.project(m);
+        Vector3 m = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        YGO.camera.unproject(m);
         return new Vector2(m.x, m.y);
     }
 }

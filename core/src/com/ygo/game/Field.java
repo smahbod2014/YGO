@@ -14,8 +14,8 @@ import com.ygo.game.Types.ZoneType;
  */
 public class Field {
 
-    private static final int CELL_WIDTH = YGO.WINDOW_WIDTH / 14;
-    private static final int CELL_HEIGHT = YGO.WINDOW_WIDTH / 10; //TODO: Make this based on window height instead of width
+    private static final int CELL_WIDTH = YGO.GAME_WIDTH / 14;
+    private static final int CELL_HEIGHT = YGO.GAME_WIDTH / 10; //TODO: Make this based on window height instead of width
     private static final float CARD_OFFSET_X = CELL_WIDTH * 0.1f;
     private static final float CARD_OFFSET_Y = CELL_HEIGHT * 0.1f;
     public static final float CARD_WIDTH_IN_CELL = CELL_WIDTH - CARD_OFFSET_X * 2;
@@ -48,8 +48,8 @@ public class Field {
         sr.setProjectionMatrix(YGO.camera.combined);
         sr.setColor(Color.WHITE);
 
-        center.x = YGO.WINDOW_WIDTH * centerX - CELLS_IN_ROW * CELL_WIDTH / 2;
-        center.y = YGO.WINDOW_HEIGHT * centerY - (CELL_HEIGHT * 4 + MIDDLE_DIVIDE) / 2;
+        center.x = YGO.GAME_WIDTH * centerX - CELLS_IN_ROW * CELL_WIDTH / 2;
+        center.y = YGO.GAME_HEIGHT * centerY - (CELL_HEIGHT * 4 + MIDDLE_DIVIDE) / 2;
 
         CURRENT_PLAYER_SPELL_TRAP_BASE.set(center);
         CURRENT_PLAYER_MONSTER_BASE.set(CURRENT_PLAYER_SPELL_TRAP_BASE).add(0, CELL_HEIGHT);
@@ -117,7 +117,7 @@ public class Field {
         sr.setProjectionMatrix(YGO.camera.combined);
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.RED);
-        sr.line(YGO.WINDOW_WIDTH/2, YGO.WINDOW_HEIGHT, YGO.WINDOW_WIDTH/2, 0);
+        sr.line(YGO.GAME_WIDTH /2, YGO.GAME_HEIGHT, YGO.GAME_WIDTH /2, 0);
         sr.setColor(Color.WHITE);
         for (int i = 0; i < CELLS_IN_ROW; i++) {
             sr.rect(CURRENT_PLAYER_SPELL_TRAP_BASE.x + CELL_WIDTH * i,
