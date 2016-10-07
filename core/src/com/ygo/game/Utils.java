@@ -6,17 +6,6 @@ import com.badlogic.gdx.math.Vector3;
 
 public class Utils {
 
-    public static final int TARGET_WIDTH = 1;
-    public static final int TARGET_HEIGHT = 1;
-
-    public static float getCurrentWindowScaleX() {
-        return width() / TARGET_WIDTH;
-    }
-
-    public static float getCurrentWindowScaleY() {
-        return height() / TARGET_HEIGHT;
-    }
-
     public static float width() {
         return Gdx.graphics.getWidth();
     }

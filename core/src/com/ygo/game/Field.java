@@ -1,8 +1,11 @@
 package com.ygo.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
@@ -41,12 +44,21 @@ public class Field {
 
     //temp variables
     private Card tempCard;
+    private PerspectiveCamera perspectiveCamera;
 
     public Field(float centerX, float centerY) {
         center = new Vector2();
         sr = new ShapeRenderer();
         sr.setProjectionMatrix(YGO.camera.combined);
         sr.setColor(Color.WHITE);
+
+        perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
+        perspectiveCamera.position.set(0, 10, 10);
+        perspectiveCamera.lookAt(0, 0, 0);
+        perspectiveCamera.near = 1;
+        perspectiveCamera.far = 300;
+        perspectiveCamera.update();
+        sr.setProjectionMatrix(perspectiveCamera.combined);
 
         center.x = YGO.GAME_WIDTH * centerX - CELLS_IN_ROW * CELL_WIDTH / 2;
         center.y = YGO.GAME_HEIGHT * centerY - (CELL_HEIGHT * 4 + MIDDLE_DIVIDE) / 2;
@@ -114,26 +126,33 @@ public class Field {
     }
 
     public void renderGrid() {
-        sr.setProjectionMatrix(YGO.camera.combined);
+        int x = 100;
+        int y = 0;
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
+        Gdx.gl.glViewport(x, y, w, h);
         sr.begin(ShapeRenderer.ShapeType.Line);
-        sr.setColor(Color.RED);
-        sr.line(YGO.GAME_WIDTH /2, YGO.GAME_HEIGHT, YGO.GAME_WIDTH /2, 0);
+//        sr.setColor(Color.RED);
+//        sr.line(YGO.GAME_WIDTH /2, YGO.GAME_HEIGHT, YGO.GAME_WIDTH /2, 0);
         sr.setColor(Color.WHITE);
-        for (int i = 0; i < CELLS_IN_ROW; i++) {
-            sr.rect(CURRENT_PLAYER_SPELL_TRAP_BASE.x + CELL_WIDTH * i,
-                    CURRENT_PLAYER_SPELL_TRAP_BASE.y,
-                    CELL_WIDTH, CELL_HEIGHT);
-            sr.rect(CURRENT_PLAYER_MONSTER_BASE.x + CELL_WIDTH * i,
-                    CURRENT_PLAYER_MONSTER_BASE.y,
-                    CELL_WIDTH, CELL_HEIGHT);
-            sr.rect(OPPONENT_PLAYER_SPELL_TRAP_BASE.x + CELL_WIDTH * i,
-                    OPPONENT_PLAYER_SPELL_TRAP_BASE.y,
-                    CELL_WIDTH, CELL_HEIGHT);
-            sr.rect(OPPONENT_PLAYER_MONSTER_BASE.x + CELL_WIDTH * i,
-                    OPPONENT_PLAYER_MONSTER_BASE.y,
-                    CELL_WIDTH, CELL_HEIGHT);
-        }
+//        for (int i = 0; i < CELLS_IN_ROW; i++) {
+//            sr.rect(CURRENT_PLAYER_SPELL_TRAP_BASE.x + CELL_WIDTH * i,
+//                    CURRENT_PLAYER_SPELL_TRAP_BASE.y,
+//                    CELL_WIDTH, CELL_HEIGHT);
+//            sr.rect(CURRENT_PLAYER_MONSTER_BASE.x + CELL_WIDTH * i,
+//                    CURRENT_PLAYER_MONSTER_BASE.y,
+//                    CELL_WIDTH, CELL_HEIGHT);
+//            sr.rect(OPPONENT_PLAYER_SPELL_TRAP_BASE.x + CELL_WIDTH * i,
+//                    OPPONENT_PLAYER_SPELL_TRAP_BASE.y,
+//                    CELL_WIDTH, CELL_HEIGHT);
+//            sr.rect(OPPONENT_PLAYER_MONSTER_BASE.x + CELL_WIDTH * i,
+//                    OPPONENT_PLAYER_MONSTER_BASE.y,
+//                    CELL_WIDTH, CELL_HEIGHT);
+//        }
+        float xoff = 0;
+        sr.box(-5 + xoff, 0, 5, 10, 0, 10);
         sr.end();
+        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     public void renderCards(SpriteBatch sb) {
