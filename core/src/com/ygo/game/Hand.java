@@ -1,9 +1,9 @@
 package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
@@ -37,15 +37,15 @@ public class Hand {
         //"advance" is the distance between cards plus the card width
         float advance = 0;
         if (cards.size <= 5) {
-            advance = Card.SIZE_IN_HAND.x + CARD_GAP;
+            advance = Card.SIZE_IN_HAND_NEAR.x + CARD_GAP;
         }
         else {
-            advance = Card.SIZE_IN_HAND.x + CARD_GAP - CARD_GAP * 0.1f * (cards.size - 5);
+            advance = Card.SIZE_IN_HAND_NEAR.x + CARD_GAP - CARD_GAP * 0.1f * (cards.size - 5);
         }
 
         float y = 0;
         if (player == PlayerType.CURRENT_PLAYER) {
-            y = Field.CURRENT_PLAYER_SPELL_TRAP_BASE.y;
+            y = 50f;
         }
         else {
             y = Field.OPPONENT_PLAYER_MONSTER_BASE.y;
@@ -65,6 +65,17 @@ public class Hand {
     }
 
     public void handleInput(float dt) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            centerX--;
+            refreshCardPositions();
+            YGO.debug("centerX: " + centerX);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            centerX++;
+            refreshCardPositions();
+            YGO.debug("centerX: " + centerX);
+        }
+
         Vector2 mousePos = Utils.getMousePos();
         boolean cardWasClicked = false;
         for (Card card : cards) {

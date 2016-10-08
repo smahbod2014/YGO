@@ -12,4 +12,9 @@ public class CardPlayMode {
     public static boolean isFaceDown(int mode) {
         return (mode & FACE_DOWN) != 0;
     }
+
+    public static boolean isFaceDownDefense(int mode) {
+        return (mode & (FACE_DOWN | DEFENSE_MODE)) == (FACE_DOWN | DEFENSE_MODE);
+    }
+
 }
