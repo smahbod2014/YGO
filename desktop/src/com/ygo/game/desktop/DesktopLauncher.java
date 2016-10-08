@@ -11,6 +11,7 @@ public class DesktopLauncher {
         config.width = YGO.WINDOW_WIDTH;
         config.height = YGO.WINDOW_HEIGHT;
         config.resizable = true;
+        config.samples = 4;
 		new LwjglApplication(new YGO(), config);
 	}
 }

@@ -13,6 +13,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.decals.Decal;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -22,6 +24,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ScalingViewport;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.ygo.game.Tests.Tests;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
@@ -42,7 +45,7 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
     static boolean isCardMenuShowing;
     static OrthographicCamera camera;
 	SpriteBatch batch;
-    static Field field;
+    public static Field field;
     static Hand[] hands = new Hand[2];
 
     Vector2 mouseDown = new Vector2();
@@ -60,20 +63,34 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         camera = new OrthographicCamera();
         camera.setToOrtho(false, GAME_WIDTH, GAME_HEIGHT);
         batch.setProjectionMatrix(camera.combined);
+        PerspectiveCamera perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
+        perspectiveCamera.position.set(0, 10, 10);
+        perspectiveCamera.lookAt(0, 0, 0);
+        perspectiveCamera.near = 1;
+        perspectiveCamera.far = 300;
+        perspectiveCamera.update();
+
         field = new Field(0.291f, 0.5f);
 
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"), new TextureAtlas("ui/uiskin.atlas"));
         stage = new Stage(new StretchViewport(GAME_WIDTH, GAME_HEIGHT, camera));
         initCardMenus();
 
-        Card.FACE_DOWN_CARD = new Sprite(new Texture("cards/cover.jpg"));
+//        Card.FACE_DOWN_CARD = new Sprite(new Texture("cards/cover.jpg"));
+        Card.FACE_DOWN_CARD_TEXTURE = new TextureRegion(new Texture("cards/cover.jpg"));
+
+        CardManager.add("3573512", CardType.MONSTER);
+        CardManager.add("7489323", CardType.MONSTER);
+        CardManager.add("80770678", CardType.MONSTER);
+        CardManager.add("88819587", CardType.MONSTER);
+        CardManager.add("93013676", CardType.MONSTER);
 
         hands[0] = new Hand(0.625f, PlayerType.CURRENT_PLAYER);
-        hands[0].addCard(new Card("3573512", CardType.MONSTER));
-        hands[0].addCard(new Card("7489323", CardType.MONSTER));
-        hands[0].addCard(new Card("80770678", CardType.MONSTER));
-        hands[0].addCard(new Card("88819587", CardType.MONSTER));
-        hands[0].addCard(new Card("93013676", CardType.MONSTER));
+        hands[0].addCard(CardManager.get("3573512"));
+        hands[0].addCard(CardManager.get("7489323"));
+        hands[0].addCard(CardManager.get("80770678"));
+        hands[0].addCard(CardManager.get("88819587"));
+        hands[0].addCard(CardManager.get("93013676"));
 
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
@@ -110,14 +127,15 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
     @Override
 	public void render() {
 		Gdx.gl.glClearColor(0, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
         float dt = Gdx.graphics.getDeltaTime();
+        Tests.input(dt);
         hands[0].handleInput(dt);
 
         field.renderGrid();
+        field.renderCards();
         batch.begin();
-        field.renderCards(batch);
         hands[0].draw(batch);
         batch.end();
 
@@ -129,12 +147,10 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
 	}
 
     //TODO: Come back to resizing
-//    @Override
-//    public void resize(int width, int height) {
-//        GAME_WIDTH = width;
-//        GAME_HEIGHT = height;
-//        camera.setToOrtho(false, width, height);
-//    }
+    @Override
+    public void resize(int width, int height) {
+        stage.getViewport().update(width, height, true);
+    }
 
     @Override
 	public void dispose() {
