@@ -96,7 +96,7 @@ public class Field {
         float padding = 10f * .02f;
         float height = 10f / 6.5f;
         Cell.cardSize.set(sideWidth * 0.8f, height * 0.9f);
-        cells[CURRENT_PLAYER.index][EXTRA_DECK.index][0]    = new Cell(-5, 5, sideWidth, height);
+        cells[CURRENT_PLAYER.index][EXTRA_DECK.index][0]    = new MultiCardCell(-5, 5, sideWidth, height);
         cells[CURRENT_PLAYER.index][PENDULUM.index][0]      = new Cell(-5, 5-height*1-padding*1, sideWidth, height);
         cells[CURRENT_PLAYER.index][FIELD_SPELL.index][0]   = new Cell(-5, 5-height*2-padding*2, sideWidth, height);
 
@@ -111,20 +111,20 @@ public class Field {
         }
 
         float rightStartX = startX + height * 5 + gapFromSide;
-        cells[CURRENT_PLAYER.index][DECK.index][0]          = new Cell(rightStartX, 5, sideWidth, height);
+        cells[CURRENT_PLAYER.index][DECK.index][0]          = new MultiCardCell(rightStartX, 5, sideWidth, height);
         cells[CURRENT_PLAYER.index][PENDULUM.index][1]      = new Cell(rightStartX, 5-height*1-padding*1, sideWidth, height);
-        cells[CURRENT_PLAYER.index][GRAVEYARD.index][0]     = new Cell(rightStartX, 5-height*2-padding*2, sideWidth, height);
-        cells[CURRENT_PLAYER.index][BANISHED.index][0]     = new Cell(rightStartX + padding + sideWidth, 5-height*2-padding*2, sideWidth, height);
+        cells[CURRENT_PLAYER.index][GRAVEYARD.index][0]     = new MultiCardCell(rightStartX, 5-height*2-padding*2, sideWidth, height);
+        cells[CURRENT_PLAYER.index][BANISHED.index][0]     = new MultiCardCell(rightStartX + padding + sideWidth, 5-height*2-padding*2, sideWidth, height);
 
 
-        cells[OPPONENT_PLAYER.index][EXTRA_DECK.index][0]    = new Cell(rightStartX, 5-height*3-padding*3, sideWidth, height);
+        cells[OPPONENT_PLAYER.index][EXTRA_DECK.index][0]    = new MultiCardCell(rightStartX, 5-height*5-padding*5, sideWidth, height);
         cells[OPPONENT_PLAYER.index][PENDULUM.index][0]      = new Cell(rightStartX, 5-height*4-padding*4, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][FIELD_SPELL.index][0]   = new Cell(rightStartX, 5-height*5-padding*5, sideWidth, height);
+        cells[OPPONENT_PLAYER.index][FIELD_SPELL.index][0]   = new Cell(rightStartX, 5-height*3-padding*3, sideWidth, height);
 
-        cells[OPPONENT_PLAYER.index][GRAVEYARD.index][0]    = new Cell(-5, 5-height*3-padding*3, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][BANISHED.index][0]     = new Cell(-5 - padding - sideWidth, 5-height*3-padding*3, sideWidth, height);
+        cells[OPPONENT_PLAYER.index][GRAVEYARD.index][0]    = new MultiCardCell(-5, 5-height*3-padding*3, sideWidth, height);
+        cells[OPPONENT_PLAYER.index][BANISHED.index][0]     = new MultiCardCell(-5 - padding - sideWidth, 5-height*3-padding*3, sideWidth, height);
         cells[OPPONENT_PLAYER.index][PENDULUM.index][1]     = new Cell(-5, 5-height*4-padding*4, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][DECK.index][0]         = new Cell(-5, 5-height*5-padding*5, sideWidth, height);
+        cells[OPPONENT_PLAYER.index][DECK.index][0]         = new MultiCardCell(-5, 5-height*5-padding*5, sideWidth, height);
 
         for (int i = 0; i < 5; i++) {
             cells[OPPONENT_PLAYER.index][SPELL_TRAP.index][i]    = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height);
@@ -212,7 +212,7 @@ public class Field {
             for (ZoneType z : ZoneType.values()) {
                 for (int i = 0; i < cells[p.index][z.index].length; i++) {
                     if (cells[p.index][z.index][i] != null) {
-                        cells[p.index][z.index][i].drawCard(decalBatch);
+                        cells[p.index][z.index][i].drawCard(decalBatch, p);
                     }
                 }
             }

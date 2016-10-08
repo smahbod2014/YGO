@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.ygo.game.Types.PlayerType;
 
 /**
  * Created by semahbod on 10/7/16.
@@ -27,13 +28,13 @@ public class Cell {
         sr.box(position.x, 0, position.y, size.x, 0, size.y);
     }
 
-    public void drawCard(DecalBatch db) {
+    public void drawCard(DecalBatch db, PlayerType player) {
         if (card == null) {
             return;
         }
 
         float x = position.x + (size.x - cardSize.x) / 2;
         float z = position.y - (size.y - cardSize.y) / 2;
-        card.drawOnField(db, x, z, cardSize.x, cardSize.y);
+        card.drawOnField(db, x, z, cardSize.x, cardSize.y, player);
     }
 }

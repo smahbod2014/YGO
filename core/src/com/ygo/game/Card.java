@@ -15,24 +15,24 @@ import com.badlogic.gdx.math.Vector3;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
+import com.ygo.game.Types.PlayerType;
 
 public class Card {
 
     public static final Vector2 SIZE_IN_HAND_NEAR = new Vector2(128 * .75f, 128).scl(.9f);
-//    public static Sprite FACE_DOWN_CARD;
+    public static final float THICKNESS = 0.0125f;
     public static TextureRegion FACE_DOWN_CARD_TEXTURE;
 
-    Texture image;
-    Decal decal, faceDown;
-    boolean isHovering;
-    int playMode;
-    String id;
-    Location location = Location.HAND;
-    Vector2 positionInHand = new Vector2();
-    CardType cardType;
+    public Texture image;
+    public Decal decal, faceDown;
+    public boolean isHovering;
+    public int playMode;
+    public String id;
+    public Location location = Location.HAND;
+    public Vector2 positionInHand = new Vector2();
+    public CardType cardType;
 
     /**
-     *
      * @param filename The filename of the card's image without the path or extension
      */
     public Card(String filename, CardType cardType) {
@@ -60,22 +60,33 @@ public class Card {
         return false;
     }
 
-    public void drawOnField(DecalBatch db, float x, float z, float width, float height) {
+    public void drawOnField(DecalBatch db, float x, float z, float width, float height, PlayerType p) {
+        drawOnField(db, x, 0, z, width, height, p);
+    }
+
+    public void drawOnField(DecalBatch db, float x, float y, float z, float width, float height, PlayerType p) {
+        Decal which;
         if (CardPlayMode.isFaceDown(playMode)) {
             //TODO: Will need additional logic here to determine if monster or spell trap, since spell trap are vertical
-            faceDown.setRotation(new Quaternion(Vector3.X, -90).mulLeft(new Quaternion(Vector3.Y, 90)));
-            faceDown.setPosition(x + width / 2, 0, z - height / 2);
-            faceDown.setWidth(width);
-            faceDown.setHeight(height);
-            db.add(faceDown);
+//            faceDown.setRotation(new Quaternion(Vector3.X, -90).mulLeft(new Quaternion(Vector3.Y, 90)));
+            faceDown.setRotationX(-90);
+            if (CardPlayMode.isFaceDownDefense(playMode)) {
+                faceDown.setRotation(new Quaternion(Vector3.Y, 90).mul(faceDown.getRotation()));
+            }
+            which = faceDown;
         }
         else {
-            decal.setRotation(new Quaternion(Vector3.X, -90));
-            decal.setPosition(x + width / 2, 0, z - height / 2);
-            decal.setWidth(width);
-            decal.setHeight(height);
-            db.add(decal);
+//            decal.setRotation(new Quaternion(Vector3.X, -90));
+            decal.setRotationX(-90);
+            which = decal;
         }
+        which.setPosition(x + width / 2, y, z - height / 2);
+        if (p == PlayerType.OPPONENT_PLAYER) {
+            which.setRotation(new Quaternion(Vector3.Y, 180).mul(which.getRotation()));
+        }
+        which.setWidth(width);
+        which.setHeight(height);
+        db.add(which);
     }
 
     public void draw(SpriteBatch sb) {

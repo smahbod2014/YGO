@@ -76,7 +76,6 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         stage = new Stage(new StretchViewport(GAME_WIDTH, GAME_HEIGHT, camera));
         initCardMenus();
 
-//        Card.FACE_DOWN_CARD = new Sprite(new Texture("cards/cover.jpg"));
         Card.FACE_DOWN_CARD_TEXTURE = new TextureRegion(new Texture("cards/cover.jpg"));
 
         CardManager.add("3573512", CardType.MONSTER);
@@ -101,19 +100,16 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         TextButton activate = new TextButton("Activate", skin);
         activate.setWidth(100);
         activate.setHeight(30);
-        //activate.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
         activate.addListener(new ActivateButtonListener());
 
         TextButton ns = new TextButton("Normal Summon", skin);
         ns.setWidth(100);
         ns.setHeight(30);
-        //ns.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
         ns.addListener(new NormalSummonButtonListener());
 
         TextButton set = new TextButton("Set", skin);
         set.setWidth(100);
         set.setHeight(30);
-        //set.getLabel().setFontScale(Utils.getCurrentWindowScaleX(), Utils.getCurrentWindowScaleY());
         set.addListener(new SetButtonListener());
 
         monsterTable.add(activate).fill().row();
@@ -166,8 +162,6 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
     @Override
     public boolean keyDown(int keycode) {
         if (keycode == Input.Keys.SPACE) {
-//            float x = convertX(Gdx.input.getX());
-//            float y = GAME_HEIGHT - convertY(Gdx.input.getY());
             System.out.println("Pointer at: " + Utils.getMousePos());
         }
         return false;
