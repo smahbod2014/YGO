@@ -1,6 +1,5 @@
 package com.ygo.game;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -12,7 +11,7 @@ import com.ygo.game.Types.Location;
 
 public class Card {
 
-    public static final Vector2 SIZE_IN_HAND = new Vector2(128 * .75f, 128);
+    public static final Vector2 SIZE_IN_HAND_NEAR = new Vector2(128 * .75f, 128).scl(.9f);
     public static Sprite FACE_DOWN_CARD;
 
     Texture image;
@@ -37,7 +36,7 @@ public class Card {
     }
 
     public boolean contains(Vector2 p) {
-        Rectangle r = new Rectangle(positionInHand.x, positionInHand.y, SIZE_IN_HAND.x, SIZE_IN_HAND.y);
+        Rectangle r = new Rectangle(positionInHand.x, positionInHand.y, SIZE_IN_HAND_NEAR.x, SIZE_IN_HAND_NEAR.y);
         if (r.contains(p)) {
             return true;
         }
@@ -63,7 +62,7 @@ public class Card {
             float y = positionInHand.y;
             if (isHovering)
                 y += 30;
-            sb.draw(image, positionInHand.x, y, SIZE_IN_HAND.x, SIZE_IN_HAND.y);
+            sb.draw(image, positionInHand.x, y, SIZE_IN_HAND_NEAR.x, SIZE_IN_HAND_NEAR.y);
         }
     }
 }

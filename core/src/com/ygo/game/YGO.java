@@ -8,6 +8,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -34,7 +35,7 @@ import com.ygo.game.listeners.SetButtonListener;
 public class YGO extends ApplicationAdapter implements InputProcessor {
 
     public static int WINDOW_WIDTH = 960;
-    public static int WINDOW_HEIGHT = 540;
+    public static int WINDOW_HEIGHT = WINDOW_WIDTH*9/16;
 	public static final int GAME_WIDTH = 1280;
     public static final int GAME_HEIGHT = 720;
 
@@ -67,7 +68,7 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
 
         Card.FACE_DOWN_CARD = new Sprite(new Texture("cards/cover.jpg"));
 
-        hands[0] = new Hand(0.75f, PlayerType.CURRENT_PLAYER);
+        hands[0] = new Hand(0.625f, PlayerType.CURRENT_PLAYER);
         hands[0].addCard(new Card("3573512", CardType.MONSTER));
         hands[0].addCard(new Card("7489323", CardType.MONSTER));
         hands[0].addCard(new Card("80770678", CardType.MONSTER));
@@ -115,7 +116,6 @@ public class YGO extends ApplicationAdapter implements InputProcessor {
         hands[0].handleInput(dt);
 
         field.renderGrid();
-        batch.setProjectionMatrix(camera.combined);
         batch.begin();
         field.renderCards(batch);
         hands[0].draw(batch);
