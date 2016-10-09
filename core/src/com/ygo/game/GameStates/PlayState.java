@@ -13,6 +13,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.esotericsoftware.kryonet.Client;
+import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Field;
@@ -25,6 +27,7 @@ import com.ygo.game.Types.SummonType;
 import com.ygo.game.Types.ZoneType;
 import com.ygo.game.Utils;
 import com.ygo.game.YGO;
+import com.ygo.game.YGOServer;
 import com.ygo.game.listeners.ActivateButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
@@ -48,8 +51,15 @@ public class PlayState extends GameState implements InputProcessor {
     Table monsterTable;
     Card currentlySelectedCard;
     PlayerType turnPlayer = PlayerType.CURRENT_PLAYER;
+    Server server;
+    Client client;
+    boolean ownsServer;
 
-    public PlayState() {
+    public PlayState(Server server, Client client) {
+        this.server = server;
+        this.client = client;
+        this.ownsServer = true;
+        info("Server started complete");
         batch = new SpriteBatch();
         camera = new OrthographicCamera();
         camera.setToOrtho(false, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
@@ -71,6 +81,10 @@ public class PlayState extends GameState implements InputProcessor {
 
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
+    }
+
+    public PlayState() {
+
     }
 
     private void initCardMenus() {
@@ -116,6 +130,14 @@ public class PlayState extends GameState implements InputProcessor {
     @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
+    }
+
+    @Override
+    public void dispose() {
+        if (ownsServer) {
+            server.stop();
+        }
+        client.stop();
     }
 
     public void showCardMenu(Card card) {

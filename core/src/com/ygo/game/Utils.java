@@ -29,4 +29,13 @@ public class Utils {
         camera.unproject(m);
         return new Vector2(m.x, m.y);
     }
+
+    public static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }
