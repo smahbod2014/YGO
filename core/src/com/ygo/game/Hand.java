@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 
@@ -16,10 +17,12 @@ public class Hand {
 
     private float centerX;
     private PlayerType player;
+    PlayState playState;
 
-    public Hand(float centerX, PlayerType player) {
+    public Hand(PlayState state, float centerX, PlayerType player) {
         this.centerX = YGO.GAME_WIDTH * centerX;
         this.player = player;
+        playState = state;
     }
 
     public void addCard(Card card) {
@@ -76,14 +79,14 @@ public class Hand {
             YGO.debug("centerX: " + centerX);
         }
 
-        Vector2 mousePos = Utils.getMousePos();
+        Vector2 mousePos = Utils.getMousePos(playState.camera);
         boolean cardWasClicked = false;
         for (Card card : cards) {
             if (card.location == Location.HAND && card.contains(mousePos)) {
                 card.isHovering = true;
                 //detect click
-                if (YGO.clicked()) {
-                    YGO.showCardMenu(card);
+                if (playState.clicked()) {
+                    playState.showCardMenu(card);
                     cardWasClicked = true;
                 }
             }
@@ -92,8 +95,8 @@ public class Hand {
             }
         }
 
-        if (YGO.clicked() && !cardWasClicked) {
-            YGO.hideCardMenus();
+        if (playState.clicked() && !cardWasClicked) {
+            playState.hideCardMenu();
         }
     }
 

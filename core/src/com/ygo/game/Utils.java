@@ -1,8 +1,10 @@
 package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+
 
 public class Utils {
 
@@ -22,9 +24,9 @@ public class Utils {
         return y * YGO.GAME_HEIGHT / Gdx.graphics.getHeight();
     }
 
-    public static Vector2 getMousePos() {
+    public static Vector2 getMousePos(Camera camera) {
         Vector3 m = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        YGO.camera.unproject(m);
+        camera.unproject(m);
         return new Vector2(m.x, m.y);
     }
 }

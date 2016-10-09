@@ -6,6 +6,9 @@ import com.badlogic.gdx.utils.TimeUtils;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Cell;
+import com.ygo.game.Field;
+import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.GameStates.StateManager;
 import com.ygo.game.MultiCardCell;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.PlayerType;
@@ -20,19 +23,20 @@ import java.util.Random;
 public class Tests {
 
     private static Random random = new Random();
+
     public static void input(float dt) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
             long start = TimeUtils.millis();
-            testCardFitInCells();
+            testCardFitInCells(((PlayState) StateManager.getCurrentState()).field);
             double elapsed = TimeUtils.timeSinceMillis(start) / 1000.0;
             YGO.info("Generated cards in " + elapsed + " seconds");
         }
     }
 
-    private static void testCardFitInCells() {
+    private static void testCardFitInCells(Field field) {
         for (PlayerType p : PlayerType.values()) {
             for (ZoneType z : ZoneType.values()) {
-                for (Cell c : YGO.field.getZone(z, p)) {
+                for (Cell c : field.getZone(z, p)) {
                     switch (z) {
                         case DECK:
                             fillUpDeck(c, 60, CardPlayMode.FACE_DOWN);
@@ -54,7 +58,7 @@ public class Tests {
                             if (z == ZoneType.SPELL_TRAP && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN;
                             }
-                            YGO.field.placeCardOnField(CardManager.getRandom().copy(), z, p, playMode);
+                            field.placeCardOnField(CardManager.getRandom().copy(), z, p, playMode);
                             break;
                     }
                 }
