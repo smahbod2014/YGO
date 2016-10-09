@@ -11,8 +11,8 @@ public class MultiCardCell extends Cell {
 
     public Array<Card> cards = new Array<Card>();
 
-    public MultiCardCell(float x, float z, float width, float height) {
-        super(x, z, width, height);
+    public MultiCardCell(float x, float z, float width, float height, PlayerType owner) {
+        super(x, z, width, height, owner);
     }
 
     @Override
@@ -22,7 +22,7 @@ public class MultiCardCell extends Cell {
 
         float y = 0;
         for (Card card : cards) {
-            card.drawOnField(db, x, y, z, cardSize.x, cardSize.y, player);
+            card.drawOnField(db, x, y, z, cardSize.x, cardSize.y, player != owner);
             y += Card.THICKNESS;
         }
     }

@@ -11,6 +11,7 @@ import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.GameStates.StateManager;
 import com.ygo.game.MultiCardCell;
 import com.ygo.game.Types.CardPlayMode;
+import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
 import com.ygo.game.YGO;
@@ -58,7 +59,7 @@ public class Tests {
                             if (z == ZoneType.SPELL_TRAP && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN;
                             }
-                            field.placeCardOnField(CardManager.getRandom().copy(), z, p, playMode);
+                            field.placeCardOnField(CardManager.getRandom().copy(), z, p, playMode, Location.FIELD);
                             break;
                     }
                 }

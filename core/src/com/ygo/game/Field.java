@@ -40,14 +40,13 @@ public class Field {
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
     private Vector2 center;
-    private Card[][][] allCards = new Card[2][ZoneType.values().length][CELLS_IN_ROW];
-    Cell[][][] cells = new Cell[2][ZoneType.values().length][];
+    public Cell[][][] cells = new Cell[2][ZoneType.values().length][];
 
     //temp variables
     private Card tempCard;
     private PerspectiveCamera perspectiveCamera;
 
-    public Field(float centerX, float centerY) {
+    public Field(float centerX, float centerY, PlayerType playerId) {
         center = new Vector2();
         sr = new ShapeRenderer();
 
@@ -68,10 +67,10 @@ public class Field {
         OPPONENT_PLAYER_SPELL_TRAP_BASE.set(CURRENT_PLAYER_MONSTER_BASE).add(0, CELL_HEIGHT + MIDDLE_DIVIDE);
         OPPONENT_PLAYER_MONSTER_BASE.set(OPPONENT_PLAYER_SPELL_TRAP_BASE).add(0, CELL_HEIGHT);
 
-        initCells();
+        initCells(playerId);
     }
 
-    private void initCells() {
+    private void initCells(PlayerType playerId) {
         for (PlayerType p : PlayerType.values()) {
             for (ZoneType z : ZoneType.values()) {
                 int quantity;
@@ -96,80 +95,79 @@ public class Field {
         float padding = 10f * .02f;
         float height = 10f / 6.5f;
         Cell.cardSize.set(sideWidth * 0.8f, height * 0.9f);
-        cells[CURRENT_PLAYER.index][EXTRA_DECK.index][0]    = new MultiCardCell(-5, 5, sideWidth, height);
-        cells[CURRENT_PLAYER.index][PENDULUM.index][0]      = new Cell(-5, 5-height*1-padding*1, sideWidth, height);
-        cells[CURRENT_PLAYER.index][FIELD_SPELL.index][0]   = new Cell(-5, 5-height*2-padding*2, sideWidth, height);
+        int player1 = 0;
+        int player2 = 1;
+        if (playerId == OPPONENT_PLAYER) {
+            player1 = 1;
+            player2 = 0;
+        }
+        PlayerType p1 = PlayerType.indexToPlayer(player1);
+        PlayerType p2 = PlayerType.indexToPlayer(player2);
+        cells[player1][EXTRA_DECK.index][0] = new MultiCardCell(-5, 5, sideWidth, height, p1);
+        cells[player1][PENDULUM.index][0] = new Cell(-5, 5 - height * 1 - padding * 1, sideWidth, height, p1);
+        cells[player1][FIELD_SPELL.index][0] = new Cell(-5, 5 - height * 2 - padding * 2, sideWidth, height, p1);
 
         float gapFromSide = 10f * 0.03f;
         float topBottomMargin = 10f * 0.1f;
         float startX = -5 + sideWidth + gapFromSide;
         for (int i = 0; i < 5; i++) {
-            cells[CURRENT_PLAYER.index][SPELL_TRAP.index][i]    = new Cell(startX + height * i, 5 - topBottomMargin, height, height);
+            cells[player1][SPELL_TRAP.index][i] = new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1);
         }
         for (int i = 0; i < 5; i++) {
-            cells[CURRENT_PLAYER.index][MONSTER.index][i]    = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height);
+            cells[player1][MONSTER.index][i] = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1);
         }
 
         float rightStartX = startX + height * 5 + gapFromSide;
-        cells[CURRENT_PLAYER.index][DECK.index][0]          = new MultiCardCell(rightStartX, 5, sideWidth, height);
-        cells[CURRENT_PLAYER.index][PENDULUM.index][1]      = new Cell(rightStartX, 5-height*1-padding*1, sideWidth, height);
-        cells[CURRENT_PLAYER.index][GRAVEYARD.index][0]     = new MultiCardCell(rightStartX, 5-height*2-padding*2, sideWidth, height);
-        cells[CURRENT_PLAYER.index][BANISHED.index][0]     = new MultiCardCell(rightStartX + padding + sideWidth, 5-height*2-padding*2, sideWidth, height);
+        cells[player1][DECK.index][0] = new MultiCardCell(rightStartX, 5, sideWidth, height, p1);
+        cells[player1][PENDULUM.index][1] = new Cell(rightStartX, 5 - height * 1 - padding * 1, sideWidth, height, p1);
+        cells[player1][GRAVEYARD.index][0] = new MultiCardCell(rightStartX, 5 - height * 2 - padding * 2, sideWidth, height, p1);
+        cells[player1][BANISHED.index][0] = new MultiCardCell(rightStartX + padding + sideWidth, 5 - height * 2 - padding * 2, sideWidth, height, p1);
 
 
-        cells[OPPONENT_PLAYER.index][EXTRA_DECK.index][0]    = new MultiCardCell(rightStartX, 5-height*5-padding*5, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][PENDULUM.index][0]      = new Cell(rightStartX, 5-height*4-padding*4, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][FIELD_SPELL.index][0]   = new Cell(rightStartX, 5-height*3-padding*3, sideWidth, height);
+        cells[player2][EXTRA_DECK.index][0] = new MultiCardCell(rightStartX, 5 - height * 5 - padding * 5, sideWidth, height, p2);
+        cells[player2][PENDULUM.index][0] = new Cell(rightStartX, 5 - height * 4 - padding * 4, sideWidth, height, p2);
+        cells[player2][FIELD_SPELL.index][0] = new Cell(rightStartX, 5 - height * 3 - padding * 3, sideWidth, height, p2);
 
-        cells[OPPONENT_PLAYER.index][GRAVEYARD.index][0]    = new MultiCardCell(-5, 5-height*3-padding*3, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][BANISHED.index][0]     = new MultiCardCell(-5 - padding - sideWidth, 5-height*3-padding*3, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][PENDULUM.index][1]     = new Cell(-5, 5-height*4-padding*4, sideWidth, height);
-        cells[OPPONENT_PLAYER.index][DECK.index][0]         = new MultiCardCell(-5, 5-height*5-padding*5, sideWidth, height);
+        cells[player2][GRAVEYARD.index][0] = new MultiCardCell(-5, 5 - height * 3 - padding * 3, sideWidth, height, p2);
+        cells[player2][BANISHED.index][0] = new MultiCardCell(-5 - padding - sideWidth, 5 - height * 3 - padding * 3, sideWidth, height, p2);
+        cells[player2][PENDULUM.index][1] = new Cell(-5, 5 - height * 4 - padding * 4, sideWidth, height, p2);
+        cells[player2][DECK.index][0] = new MultiCardCell(-5, 5 - height * 5 - padding * 5, sideWidth, height, p2);
 
         for (int i = 0; i < 5; i++) {
-            cells[OPPONENT_PLAYER.index][SPELL_TRAP.index][i]    = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height);
+            cells[player2][SPELL_TRAP.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2);
         }
         for (int i = 0; i < 5; i++) {
-            cells[OPPONENT_PLAYER.index][MONSTER.index][i]    = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height);
+            cells[player2][MONSTER.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2);
         }
-    }
-
-    public Vector2 getCenter() {
-        return center;
     }
 
     public float getWidth() {
         return CELLS_IN_ROW * CELL_WIDTH;
     }
 
-    private Vector2 getCardPositionInZone(PlayerType player, ZoneType zone, int slot) {
-        Vector2 base = new Vector2();
-        if (player == PlayerType.CURRENT_PLAYER) {
-            switch (zone) {
-                case SPELL_TRAP:
-                    base.add(CURRENT_PLAYER_SPELL_TRAP_BASE);
-                    break;
-                case MONSTER:
-                    base.add(CURRENT_PLAYER_MONSTER_BASE);
-                    break;
-            }
-            base.add(slot * CELL_WIDTH, 0).add(CARD_OFFSET_X, CARD_OFFSET_Y);
-        }
-        return base;
-    }
-
-    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, int cardPlayMode) {
+    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         int firstAvailable = getEmptyCell(zone);
         zone[firstAvailable].card = card;
-        card.location = Location.FIELD;
+        card.location = location;
         card.playMode = cardPlayMode;
         //this is where we would fire "onSummon" events
+    }
+
+    public void placeCardsInZone(Array<Card> cards, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
+        Cell[] zone = getZone(destination, playerSide);
+        MultiCardCell mc = (MultiCardCell) zone[0];
+        mc.cards.addAll(cards);
+        for (Card card : cards) {
+            card.location = location;
+            card.playMode = cardPlayMode;
+        }
     }
 
     /**
      * Fetches an empty cell in a zone. Up to the user whether it's the first empty
      * cell, a random empty cell, etc.
+     *
      * @param zone
      * @return
      */
@@ -206,13 +204,17 @@ public class Field {
         revertViewport();
     }
 
-    public void renderCards() {
+    /**
+     * Render the cards on the field from the perspective of <code>playerId</code>
+     * @param playerId
+     */
+    public void renderCards(PlayerType playerId) {
         prepareViewport();
         for (PlayerType p : PlayerType.values()) {
             for (ZoneType z : ZoneType.values()) {
                 for (int i = 0; i < cells[p.index][z.index].length; i++) {
                     if (cells[p.index][z.index][i] != null) {
-                        cells[p.index][z.index][i].drawCard(decalBatch, p);
+                        cells[p.index][z.index][i].drawCard(decalBatch, playerId);
                     }
                 }
             }

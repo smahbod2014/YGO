@@ -60,11 +60,11 @@ public class Card {
         return false;
     }
 
-    public void drawOnField(DecalBatch db, float x, float z, float width, float height, PlayerType p) {
-        drawOnField(db, x, 0, z, width, height, p);
+    public void drawOnField(DecalBatch db, float x, float z, float width, float height, boolean opponentsCard) {
+        drawOnField(db, x, 0, z, width, height, opponentsCard);
     }
 
-    public void drawOnField(DecalBatch db, float x, float y, float z, float width, float height, PlayerType p) {
+    public void drawOnField(DecalBatch db, float x, float y, float z, float width, float height, boolean opponentsCard) {
         Decal which;
         if (CardPlayMode.isFaceDown(playMode)) {
             //TODO: Will need additional logic here to determine if monster or spell trap, since spell trap are vertical
@@ -81,7 +81,7 @@ public class Card {
             which = decal;
         }
         which.setPosition(x + width / 2, y, z - height / 2);
-        if (p == PlayerType.OPPONENT_PLAYER) {
+        if (opponentsCard) {
             which.setRotation(new Quaternion(Vector3.Y, 180).mul(which.getRotation()));
         }
         which.setWidth(width);

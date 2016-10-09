@@ -12,13 +12,18 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryonet.Client;
+import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
+import com.ygo.game.Messages.GameInitializationMessage;
+import com.ygo.game.MultiCardCell;
+import com.ygo.game.ServerListener;
 import com.ygo.game.Tests.Tests;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.Location;
@@ -27,7 +32,6 @@ import com.ygo.game.Types.SummonType;
 import com.ygo.game.Types.ZoneType;
 import com.ygo.game.Utils;
 import com.ygo.game.YGO;
-import com.ygo.game.YGOServer;
 import com.ygo.game.listeners.ActivateButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
@@ -51,21 +55,44 @@ public class PlayState extends GameState implements InputProcessor {
     Table monsterTable;
     Card currentlySelectedCard;
     PlayerType turnPlayer = PlayerType.CURRENT_PLAYER;
+    PlayerType playerId;
     Server server;
     Client client;
-    boolean ownsServer;
+    boolean isServer;
 
-    public PlayState(Server server, Client client) {
+    public PlayState(Server server, ServerListener serverListener, Client client) {
         this.server = server;
         this.client = client;
-        this.ownsServer = true;
-        info("Server started complete");
+        this.isServer = server != null;
+
+        if (isServer) {
+            serverListener.playState = this;
+            registerMessages(server);
+            Gdx.graphics.setTitle("YGO: Player 1");
+            playerId = PlayerType.CURRENT_PLAYER;
+        }
+        else {
+            Gdx.graphics.setTitle("YGO: Player 2");
+            playerId = PlayerType.OPPONENT_PLAYER;
+        }
+        client.addListener(new ClientListener(this));
+        registerMessages(client);
+
+        initCommon();
+        initGame();
+    }
+
+    public PlayState(Client client) {
+        this(null, null, client);
+    }
+
+    private void initCommon() {
         batch = new SpriteBatch();
         camera = new OrthographicCamera();
         camera.setToOrtho(false, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
         batch.setProjectionMatrix(camera.combined);
 
-        field = new Field(0.291f, 0.5f);
+        field = new Field(0.291f, 0.5f, playerId);
 
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"), new TextureAtlas("ui/uiskin.atlas"));
         stage = new Stage(new StretchViewport(YGO.GAME_WIDTH, YGO.GAME_HEIGHT, camera));
@@ -81,10 +108,6 @@ public class PlayState extends GameState implements InputProcessor {
 
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
-    }
-
-    public PlayState() {
-
     }
 
     private void initCardMenus() {
@@ -106,6 +129,24 @@ public class PlayState extends GameState implements InputProcessor {
         stage.addActor(monsterTable);
     }
 
+    private void initGame() {
+        if (!isServer)
+            return;
+
+        Array<String> p1Deck = new Array<String>();
+        Array<String> p2Deck = new Array<String>();
+
+        for (int i = 0; i < 10; i++) {
+            p1Deck.add(CardManager.getRandom().id);
+        }
+
+        for (int i = 0; i < 30; i++) {
+            p2Deck.add(CardManager.getRandom().id);
+        }
+
+        server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
+    }
+
     @Override
     public void update(float dt) {
         Tests.input(dt);
@@ -116,10 +157,10 @@ public class PlayState extends GameState implements InputProcessor {
     @Override
     public void render() {
         field.renderGrid();
-        field.renderCards();
-        batch.begin();
-        hands[0].draw(batch);
-        batch.end();
+        field.renderCards(playerId);
+//        batch.begin();
+//        hands[0].draw(batch);
+//        batch.end();
 
         stage.draw();
 
@@ -134,7 +175,7 @@ public class PlayState extends GameState implements InputProcessor {
 
     @Override
     public void dispose() {
-        if (ownsServer) {
+        if (isServer) {
             server.stop();
         }
         client.stop();
@@ -171,7 +212,7 @@ public class PlayState extends GameState implements InputProcessor {
         if (currentlySelectedCard.location == Location.HAND) {
             hand.removeCard(currentlySelectedCard);
         }
-        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode);
+        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode, Location.FIELD);
     }
 
     public boolean clicked() {
@@ -232,5 +273,30 @@ public class PlayState extends GameState implements InputProcessor {
     @Override
     public boolean scrolled(int amount) {
         return false;
+    }
+
+    private void registerMessages(EndPoint ep) {
+        ep.getKryo().register(Object[].class);
+        ep.getKryo().register(Array.class);
+        ep.getKryo().register(GameInitializationMessage.class);
+    }
+
+    public void handleGameInitializationMessage(GameInitializationMessage m) {
+        Array<Card> p1Deck = new Array<Card>();
+        Array<Card> p2Deck = new Array<Card>();
+
+        for (String id : m.p1Deck) {
+            p1Deck.add(CardManager.get(id).copy());
+        }
+
+        for (String id : m.p2Deck) {
+            p2Deck.add(CardManager.get(id).copy());
+        }
+
+        field.placeCardsInZone(p1Deck, ZoneType.DECK, PlayerType.CURRENT_PLAYER, CardPlayMode.FACE_DOWN, Location.DECK);
+        field.placeCardsInZone(p2Deck, ZoneType.DECK, PlayerType.OPPONENT_PLAYER, CardPlayMode.FACE_DOWN, Location.DECK);
+
+        field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.CURRENT_PLAYER, CardPlayMode.FACE_UP, Location.FIELD);
+        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.FIELD_SPELL, PlayerType.OPPONENT_PLAYER, CardPlayMode.FACE_UP, Location.FIELD);
     }
 }

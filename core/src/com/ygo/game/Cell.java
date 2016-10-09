@@ -16,10 +16,12 @@ public class Cell {
     public Vector2 position;
     public Vector2 size;
     public Card card; //What card is in this cell?
+    public PlayerType owner;
 
-    public Cell(float x, float z, float width, float height) {
+    public Cell(float x, float z, float width, float height, PlayerType owner) {
         position = new Vector2(x, z);
         size = new Vector2(width, height);
+        this.owner = owner;
     }
 
     public void draw(ShapeRenderer sr) {
@@ -35,6 +37,6 @@ public class Cell {
 
         float x = position.x + (size.x - cardSize.x) / 2;
         float z = position.y - (size.y - cardSize.y) / 2;
-        card.drawOnField(db, x, z, cardSize.x, cardSize.y, player);
+        card.drawOnField(db, x, z, cardSize.x, cardSize.y, player != owner);
     }
 }

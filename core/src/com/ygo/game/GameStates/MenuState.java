@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
+import com.ygo.game.ServerListener;
 import com.ygo.game.Utils;
 import com.ygo.game.YGO;
 import com.ygo.game.YGOServer;
@@ -34,7 +35,7 @@ import static com.ygo.game.YGO.info;
  * Created by semahbod on 10/8/16.
  */
 public class MenuState extends GameState {
-
+    public static final Object lock = new Object();
     OrthographicCamera camera;
     Stage stage;
     Skin skin;
@@ -47,43 +48,42 @@ public class MenuState extends GameState {
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"), new TextureAtlas("ui/uiskin.atlas"));
         table = new Table();
 
-        TextButton playLocal = new TextButton("Host", skin);
+        TextButton playLocal = new TextButton("Host Local", skin);
         playLocal.getLabel().setFontScale(1.2f);
         playLocal.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                final Dialog dialog = new Dialog("Connecting", skin);
+                final Dialog dialog = new Dialog("Creating game", skin);
                 Table dialogTable = new Table();
                 dialogTable.pad(30f, 50f, 30f, 50f);
-                dialogTable.add(new Label("Please wait...", skin));
+                dialogTable.add(new Label("Waiting for another player to join...", skin));
                 dialog.add(dialogTable);
                 dialog.show(stage);
 
-                final ReentrantLock lock = new ReentrantLock();
-                final Condition cond = lock.newCondition();
-                final Condition networkingDone = lock.newCondition();
-                final Server server = createServer(lock, cond);
-                final Client client = createClient(lock, cond);
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        lock.lock();
-                        networkingDone.awaitUninterruptibly();
-                        lock.unlock();
+                        final ServerListener listener = new ServerListener();
+                        final Server server = createServer(listener);
+                        synchronized (lock) {
+                            try {
+                                lock.wait();
+                            }
+                            catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        final Client client = createClient();
                         Gdx.app.postRunnable(new Runnable() {
                             @Override
                             public void run() {
-                                dialog.cancel();
-                                StateManager.pushState(new PlayState(server, client));
+                                dialog.hide();
+                                StateManager.pushState(new PlayState(server, listener, client));
                             }
                         });
                     }
                 }).start();
 
-                Utils.sleep(10);
-                lock.lock();
-                networkingDone.signal();
-                lock.unlock();
 
 //                Timer.schedule(new Timer.Task() {
 //                    @Override
@@ -94,7 +94,47 @@ public class MenuState extends GameState {
             }
         });
 
-        Tex
+        TextButton join = new TextButton("Join Local", skin);
+        join.getLabel().setFontScale(1.2f);
+        join.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                final Dialog dialog = new Dialog("Joining game", skin);
+                Table dialogTable = new Table();
+                dialogTable.pad(30f, 50f, 30f, 50f);
+                dialogTable.add(new Label("Please wait...", skin));
+                dialog.add(dialogTable);
+                dialog.show(stage);
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final Client client = createClient();
+                        Gdx.app.postRunnable(new Runnable() {
+                            @Override
+                            public void run() {
+                                dialog.hide();
+                                if (client == null) {
+                                    final Dialog error = new Dialog("Couldn't connect", skin);
+                                    TextButton ok = new TextButton("OK", skin);
+                                    ok.getLabel().setFontScale(1.2f);
+                                    ok.setWidth(100);
+                                    ok.setHeight(30);
+//                                    errorTable.add(ok).align(Align.bottomRight);
+                                    error.text("No active server found");
+                                    error.button(ok);
+//                                    error.add(errorTable);
+                                    error.show(stage);
+                                }
+                                else {
+                                    StateManager.pushState(new PlayState(client));
+                                }
+                            }
+                        });
+                    }
+                }).start();
+            }
+        });
 
         TextButton quit = new TextButton("Quit", skin);
         quit.getLabel().setFontScale(1.2f);
@@ -108,6 +148,7 @@ public class MenuState extends GameState {
         table.setFillParent(true);
         table.center();
         table.add(playLocal).width(200).height(50).padBottom(5f).row();
+        table.add(join).width(200).height(50).padBottom(5f).row();
         table.add(quit).width(200).height(50).row();
         stage.addActor(table);
 
@@ -135,57 +176,72 @@ public class MenuState extends GameState {
         skin.dispose();
     }
 
-    private Server createServer(final Lock lock, final Condition cond) {
+    private Server createServer(ServerListener listener) {
         final Server server = new Server();
+        server.addListener(listener);
         server.start();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Utils.sleep(10);
-                    lock.lock();
-                    server.bind(27000);
-                    cond.signal();
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-                finally {
-                    lock.unlock();
-                }
-            }
-        }).start();
-
-        lock.lock();
-        cond.awaitUninterruptibly();
-        lock.unlock();
+        try {
+            server.bind(27000);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Utils.sleep(10);
+//                    lock.lock();
+//                    Utils.sleep(3000);
+//                    server.bind(27000);
+//                    cond.signal();
+//                }
+//                catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                finally {
+//                    lock.unlock();
+//                }
+//            }
+//        }).start();
+//
+//        lock.lock();
+//        cond.awaitUninterruptibly();
+//        lock.unlock();
         return server;
     }
 
-    private Client createClient(final Lock lock, final Condition cond) {
+    private Client createClient() {
         final Client client = new Client();
         client.start();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Utils.sleep(10);
-                    lock.lock();
-                    client.connect(3000, "localhost", YGOServer.PORT);
-                    cond.signal();
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
-                finally {
-                    lock.unlock();
-                }
-            }
-        }).start();
-
-        lock.lock();
-        cond.awaitUninterruptibly();
-        lock.unlock();
+        try {
+            client.connect(3000, "localhost", YGOServer.PORT);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Utils.sleep(10);
+//                    lock.lock();
+//                    client.connect(3000, "localhost", YGOServer.PORT);
+//                    cond.signal();
+//                }
+//                catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                finally {
+//                    lock.unlock();
+//                }
+//            }
+//        }).start();
+//
+//        lock.lock();
+//        cond.awaitUninterruptibly();
+//        lock.unlock();
         return client;
     }
 }
