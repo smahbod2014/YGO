@@ -138,6 +138,15 @@ public class Field {
             cells[player2][MONSTER.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2);
         }
 
+        //if we are player 1, we need to reverse player 2's monster/spelltrap zones
+        if (playerId == PLAYER_1) {
+            Utils.reverseArray(getZone(MONSTER, PLAYER_2));
+            Utils.reverseArray(getZone(SPELL_TRAP, PLAYER_2));
+        }
+        else {
+            Utils.reverseArray(getZone(MONSTER, PLAYER_1));
+            Utils.reverseArray(getZone(SPELL_TRAP, PLAYER_1));
+        }
     }
 
     public float getWidth() {
