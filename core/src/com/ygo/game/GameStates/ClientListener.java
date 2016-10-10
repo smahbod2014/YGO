@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
+import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
 
 public class ClientListener extends Listener {
@@ -15,16 +16,18 @@ public class ClientListener extends Listener {
     }
 
     @Override
-    public void received(Connection connection, final Object object) {
-        if (object instanceof FrameworkMessage.Ping)
+    public void received(Connection connection, final Object m) {
+        if (m instanceof FrameworkMessage.Ping)
             return;
 
         Gdx.app.postRunnable(new Runnable() {
             @Override
             public void run() {
-                if (object instanceof GameInitializationMessage) {
-                    GameInitializationMessage m = (GameInitializationMessage) object;
-                    playState.handleGameInitializationMessage(m);
+                if (m instanceof GameInitializationMessage) {
+                    playState.handleGameInitializationMessage((GameInitializationMessage) m);
+                }
+                else if (m instanceof DrawMessage) {
+                    playState.handleDrawMessage((DrawMessage) m);
                 }
             }
         });

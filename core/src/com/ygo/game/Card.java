@@ -19,7 +19,6 @@ import com.ygo.game.Types.PlayerType;
 
 public class Card {
 
-    public static final Vector2 SIZE_IN_HAND_NEAR = new Vector2(128 * .75f, 128).scl(.9f);
     public static final float THICKNESS = 0.0125f;
     public static TextureRegion FACE_DOWN_CARD_TEXTURE;
 
@@ -30,17 +29,27 @@ public class Card {
     public String id;
     public Location location = Location.HAND;
     public Vector2 positionInHand = new Vector2();
-    public CardType cardType;
+    public int cardType;
+    public int atk;
+    public int def;
+    public int level;
 
     /**
      * @param filename The filename of the card's image without the path or extension
      */
-    public Card(String filename, CardType cardType) {
+    public Card(String filename, int cardType, int atk, int def, int level) {
         image = new Texture("cards/" + filename + ".jpg");
         decal = Decal.newDecal(new TextureRegion(image), true);
         faceDown = Decal.newDecal(FACE_DOWN_CARD_TEXTURE, true);
         id = filename;
         this.cardType = cardType;
+        this.atk = atk;
+        this.def = def;
+        this.level = level;
+    }
+
+    public Card(String filename, int cardType) {
+        this(filename, cardType, 0, 0, 0);
     }
 
     public void setLocation(Location location) {
@@ -51,8 +60,9 @@ public class Card {
         return new Card(id, cardType);
     }
 
-    public boolean contains(Vector2 p) {
-        Rectangle r = new Rectangle(positionInHand.x, positionInHand.y, SIZE_IN_HAND_NEAR.x, SIZE_IN_HAND_NEAR.y);
+    public boolean contains(Vector2 p, boolean opponentsCard) {
+        Vector2 cardSize = opponentsCard ? Hand.CARD_SIZE_IN_HAND_FAR : Hand.CARD_SIZE_IN_HAND_NEAR;
+        Rectangle r = new Rectangle(positionInHand.x, positionInHand.y, cardSize.x, cardSize.y);
         if (r.contains(p)) {
             return true;
         }
@@ -89,12 +99,29 @@ public class Card {
         db.add(which);
     }
 
-    public void draw(SpriteBatch sb) {
+    public void draw(SpriteBatch sb, boolean opponentsCard) {
         if (location == Location.HAND) {
             float y = positionInHand.y;
             if (isHovering)
                 y += 30;
-            sb.draw(image, positionInHand.x, y, SIZE_IN_HAND_NEAR.x, SIZE_IN_HAND_NEAR.y);
+            if (opponentsCard) {
+                sb.draw(FACE_DOWN_CARD_TEXTURE, positionInHand.x, y, Hand.CARD_SIZE_IN_HAND_FAR.x, Hand.CARD_SIZE_IN_HAND_FAR.y);
+            }
+            else {
+                sb.draw(image, positionInHand.x, y, Hand.CARD_SIZE_IN_HAND_NEAR.x, Hand.CARD_SIZE_IN_HAND_NEAR.y);
+            }
         }
+    }
+
+    public boolean isMonster() {
+        return (cardType & CardType.MONSTER) != 0;
+    }
+
+    public boolean isSpell() {
+        return (cardType & CardType.SPELL) != 0;
+    }
+
+    public boolean isTrap() {
+        return (cardType & CardType.TRAP) != 0;
     }
 }

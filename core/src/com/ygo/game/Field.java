@@ -3,14 +3,11 @@ package com.ygo.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
@@ -36,6 +33,7 @@ public class Field {
     public static final Vector2 OPPONENT_PLAYER_SPELL_TRAP_BASE = new Vector2();
     public static final Vector2 OPPONENT_PLAYER_MONSTER_BASE = new Vector2();
     private static final int CELLS_IN_ROW = 5;
+    public static final int TOP_CARD = -1;
 
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
@@ -97,7 +95,7 @@ public class Field {
         Cell.cardSize.set(sideWidth * 0.8f, height * 0.9f);
         int player1 = 0;
         int player2 = 1;
-        if (playerId == OPPONENT_PLAYER) {
+        if (playerId == PLAYER_2) {
             player1 = 1;
             player2 = 0;
         }
@@ -139,6 +137,7 @@ public class Field {
         for (int i = 0; i < 5; i++) {
             cells[player2][MONSTER.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2);
         }
+
     }
 
     public float getWidth() {
@@ -233,5 +232,14 @@ public class Field {
 
     private void revertViewport() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    public Card removeCard(PlayerType player, ZoneType where, int which) {
+        Cell[] zone = getZone(where, player);
+        MultiCardCell mc = (MultiCardCell) zone[0];
+        if (which == TOP_CARD) {
+            which = mc.cards.size - 1;
+        }
+        return mc.cards.removeIndex(which);
     }
 }

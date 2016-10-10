@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.EndPoint;
@@ -21,8 +22,8 @@ import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
+import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
-import com.ygo.game.MultiCardCell;
 import com.ygo.game.ServerListener;
 import com.ygo.game.Tests.Tests;
 import com.ygo.game.Types.CardPlayMode;
@@ -36,6 +37,7 @@ import com.ygo.game.listeners.ActivateButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
 
+import static com.ygo.game.YGO.debug;
 import static com.ygo.game.YGO.info;
 
 /**
@@ -54,7 +56,7 @@ public class PlayState extends GameState implements InputProcessor {
     Stage stage;
     Table monsterTable;
     Card currentlySelectedCard;
-    PlayerType turnPlayer = PlayerType.CURRENT_PLAYER;
+    PlayerType turnPlayer = PlayerType.PLAYER_1;
     PlayerType playerId;
     Server server;
     Client client;
@@ -69,11 +71,11 @@ public class PlayState extends GameState implements InputProcessor {
             serverListener.playState = this;
             registerMessages(server);
             Gdx.graphics.setTitle("YGO: Player 1");
-            playerId = PlayerType.CURRENT_PLAYER;
+            playerId = PlayerType.PLAYER_1;
         }
         else {
             Gdx.graphics.setTitle("YGO: Player 2");
-            playerId = PlayerType.OPPONENT_PLAYER;
+            playerId = PlayerType.PLAYER_2;
         }
         client.addListener(new ClientListener(this));
         registerMessages(client);
@@ -99,12 +101,8 @@ public class PlayState extends GameState implements InputProcessor {
 
         initCardMenus();
 
-        hands[0] = new Hand(this, 0.625f, PlayerType.CURRENT_PLAYER);
-        hands[0].addCard(CardManager.get("3573512"));
-        hands[0].addCard(CardManager.get("7489323"));
-        hands[0].addCard(CardManager.get("80770678"));
-        hands[0].addCard(CardManager.get("88819587"));
-        hands[0].addCard(CardManager.get("93013676"));
+        hands[0] = new Hand(this, 0.625f, PlayerType.PLAYER_1);
+        hands[1] = new Hand(this, 0.625f, PlayerType.PLAYER_2);
 
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
@@ -136,21 +134,36 @@ public class PlayState extends GameState implements InputProcessor {
         Array<String> p1Deck = new Array<String>();
         Array<String> p2Deck = new Array<String>();
 
+        CardManager.clearDuplicatesHistory();
         for (int i = 0; i < 10; i++) {
-            p1Deck.add(CardManager.getRandom().id);
+            p1Deck.add(CardManager.getRandomNoDuplicates().id);
+            if (i < 3)
+                debug("Added " + p1Deck.peek() + "to P1 deck");
         }
 
-        for (int i = 0; i < 30; i++) {
-            p2Deck.add(CardManager.getRandom().id);
+        CardManager.clearDuplicatesHistory();
+        for (int i = 0; i < 15; i++) {
+            p2Deck.add(CardManager.getRandomNoDuplicates().id);
+            if (i < 3)
+                debug("Added " + p2Deck.peek() + "to P2 deck");
         }
 
         server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
+
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_1.index));
+                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_2.index));
+            }
+        }, 1, 0.5f, 4);
     }
 
     @Override
     public void update(float dt) {
         Tests.input(dt);
-        hands[0].handleInput(dt);
+        hands[0].handleInput(dt, playerId);
+        hands[1].handleInput(dt, playerId);
         stage.act(dt);
     }
 
@@ -158,9 +171,10 @@ public class PlayState extends GameState implements InputProcessor {
     public void render() {
         field.renderGrid();
         field.renderCards(playerId);
-//        batch.begin();
-//        hands[0].draw(batch);
-//        batch.end();
+        batch.begin();
+        hands[0].draw(batch, playerId);
+        hands[1].draw(batch, playerId);
+        batch.end();
 
         stage.draw();
 
@@ -183,11 +197,20 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void showCardMenu(Card card) {
         currentlySelectedCard = card;
-        switch (card.cardType) {
-            case MONSTER:
-                monsterTable.setVisible(true);
-                monsterTable.setPosition(Utils.getMousePos(camera).x, Utils.getMousePos(camera).y);
-                break;
+        if (card.isMonster()) {
+            monsterTable.setVisible(true);
+            monsterTable.setPosition(Utils.getMousePos(camera).x, Utils.getMousePos(camera).y);
+            debug(monsterTable.isVisible() ? "Table should be visible" : "Table is NOT visible...");
+            debug("Monster card clicked");
+        }
+        else if (card.isSpell()) {
+            debug("Spell card clicked");
+        }
+        else if (card.isTrap()) {
+            debug("Trap card clicked");
+        }
+        else {
+            debug("ERROR: Unknown card type clicked");
         }
     }
 
@@ -210,7 +233,7 @@ public class PlayState extends GameState implements InputProcessor {
     private void performSummon(SummonType summonType, int cardPlayMode) {
         Hand hand = hands[turnPlayer.index];
         if (currentlySelectedCard.location == Location.HAND) {
-            hand.removeCard(currentlySelectedCard);
+            hand.removeCard(currentlySelectedCard, turnPlayer);
         }
         field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode, Location.FIELD);
     }
@@ -279,6 +302,13 @@ public class PlayState extends GameState implements InputProcessor {
         ep.getKryo().register(Object[].class);
         ep.getKryo().register(Array.class);
         ep.getKryo().register(GameInitializationMessage.class);
+        ep.getKryo().register(DrawMessage.class);
+    }
+
+    private void drawCard(PlayerType player) {
+        Card card = field.removeCard(player, ZoneType.DECK, Field.TOP_CARD);
+        hands[player.index].addCard(card, playerId);
+        debug(player.toString() + " drew " + card.id);
     }
 
     public void handleGameInitializationMessage(GameInitializationMessage m) {
@@ -293,10 +323,14 @@ public class PlayState extends GameState implements InputProcessor {
             p2Deck.add(CardManager.get(id).copy());
         }
 
-        field.placeCardsInZone(p1Deck, ZoneType.DECK, PlayerType.CURRENT_PLAYER, CardPlayMode.FACE_DOWN, Location.DECK);
-        field.placeCardsInZone(p2Deck, ZoneType.DECK, PlayerType.OPPONENT_PLAYER, CardPlayMode.FACE_DOWN, Location.DECK);
+        field.placeCardsInZone(p1Deck, ZoneType.DECK, PlayerType.PLAYER_1, CardPlayMode.FACE_DOWN, Location.DECK);
+        field.placeCardsInZone(p2Deck, ZoneType.DECK, PlayerType.PLAYER_2, CardPlayMode.FACE_DOWN, Location.DECK);
 
-        field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.CURRENT_PLAYER, CardPlayMode.FACE_UP, Location.FIELD);
-        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.FIELD_SPELL, PlayerType.OPPONENT_PLAYER, CardPlayMode.FACE_UP, Location.FIELD);
+        field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.PLAYER_1, CardPlayMode.FACE_UP, Location.FIELD);
+        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.FIELD_SPELL, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
+    }
+
+    public void handleDrawMessage(DrawMessage m) {
+        drawCard(PlayerType.indexToPlayer(m.player));
     }
 }
