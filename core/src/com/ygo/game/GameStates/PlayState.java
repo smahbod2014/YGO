@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
@@ -24,6 +25,8 @@ import com.ygo.game.Field;
 import com.ygo.game.Hand;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
+import com.ygo.game.Messages.SpellTrapSetMessage;
+import com.ygo.game.Messages.SummonMessage;
 import com.ygo.game.ServerListener;
 import com.ygo.game.Tests.Tests;
 import com.ygo.game.Types.CardPlayMode;
@@ -54,7 +57,8 @@ public class PlayState extends GameState implements InputProcessor {
     boolean mouseClicked = false;
     Skin skin;
     Stage stage;
-    Table monsterTable;
+    Table buttonTable;
+    TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet;
     Card currentlySelectedCard;
     PlayerType turnPlayer = PlayerType.PLAYER_1;
     PlayerType playerId;
@@ -109,22 +113,19 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     private void initCardMenus() {
-        monsterTable = new Table();
-        TextButton activate = new TextButton("Activate", skin);
-        activate.addListener(new ActivateButtonListener(this));
+        buttonTable = new Table();
+        btnActivate = new TextButton("Activate", skin);
+        btnActivate.addListener(new ActivateButtonListener(this));
 
-        TextButton ns = new TextButton("Normal Summon", skin);
-        ns.addListener(new NormalSummonButtonListener(this));
+        btnNormalSummon = new TextButton("Normal Summon", skin);
+        btnNormalSummon.addListener(new NormalSummonButtonListener(this));
 
-        TextButton set = new TextButton("Set", skin);
-        set.addListener(new SetButtonListener(this));
+        btnSet = new TextButton("Set", skin);
+        btnSet.addListener(new SetButtonListener(this));
 
-        monsterTable.add(activate).fill().row();
-        monsterTable.add(ns).fill().row();
-        monsterTable.add(set).fill().row();
-        monsterTable.setVisible(false);
+        buttonTable.setVisible(false);
 
-        stage.addActor(monsterTable);
+        stage.addActor(buttonTable);
     }
 
     private void initGame() {
@@ -159,11 +160,13 @@ public class PlayState extends GameState implements InputProcessor {
         }, 1, 0.5f, 4);
     }
 
+
     @Override
     public void update(float dt) {
         Tests.input(dt);
         hands[0].handleInput(dt, playerId);
         hands[1].handleInput(dt, playerId);
+        field.highlightCells();
         stage.act(dt);
     }
 
@@ -195,27 +198,36 @@ public class PlayState extends GameState implements InputProcessor {
         client.stop();
     }
 
+    private void addButtonToTable(TextButton button) {
+        buttonTable.add(button).width(140).fill().row();
+    }
+
     public void showCardMenu(Card card) {
         currentlySelectedCard = card;
+        buttonTable.clear();
+        buttonTable.setVisible(true);
+        buttonTable.setPosition(Utils.getMousePos(camera).x + 40, Utils.getMousePos(camera).y + 50);
         if (card.isMonster()) {
-            monsterTable.setVisible(true);
-            monsterTable.setPosition(Utils.getMousePos(camera).x, Utils.getMousePos(camera).y);
-            debug(monsterTable.isVisible() ? "Table should be visible" : "Table is NOT visible...");
-            debug("Monster card clicked");
+            addButtonToTable(btnNormalSummon);
+            addButtonToTable(btnSet);
+            debug("Monster card clicked (" + card.id + ")");
         }
         else if (card.isSpell()) {
-            debug("Spell card clicked");
+            addButtonToTable(btnActivate);
+            addButtonToTable(btnSet);
+            debug("Spell card clicked (" + card.id + ")");
         }
         else if (card.isTrap()) {
-            debug("Trap card clicked");
+            addButtonToTable(btnSet);
+            debug("Trap card clicked (" + card.id + ")");
         }
         else {
-            debug("ERROR: Unknown card type clicked");
+            debug("ERROR: Unknown card type clicked: (" + card.id + ")");
         }
     }
 
     public void hideCardMenu() {
-        monsterTable.setVisible(false);
+        buttonTable.setVisible(false);
     }
 
     public void performNormalSummon() {
@@ -226,16 +238,27 @@ public class PlayState extends GameState implements InputProcessor {
         info("performEffectActivation not implemented");
     }
 
+    //TODO: This will later take a parameter indicating where the card is being set from (hand, deck, graveyard...)
     public void performSet() {
-        performSummon(SummonType.SET, CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE);
+        if (currentlySelectedCard.isMonster()) {
+            performSummon(SummonType.SET, CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE);
+        }
+        else {
+            SpellTrapSetMessage m = new SpellTrapSetMessage(playerId.index, Location.HAND.index, currentlySelectedCard.id);
+            client.sendTCP(m);
+        }
     }
 
     private void performSummon(SummonType summonType, int cardPlayMode) {
-        Hand hand = hands[turnPlayer.index];
-        if (currentlySelectedCard.location == Location.HAND) {
-            hand.removeCard(currentlySelectedCard, turnPlayer);
-        }
-        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode, Location.FIELD);
+//        Hand hand = hands[turnPlayer.index];
+//        if (currentlySelectedCard.location == Location.HAND) {
+//            hand.removeCard(currentlySelectedCard, turnPlayer);
+//        }
+//        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode, Location.FIELD);
+
+        //TODO: pass location as parameter
+        SummonMessage m = new SummonMessage(playerId.index, Location.HAND.index, currentlySelectedCard.id, summonType.index, cardPlayMode);
+        client.sendTCP(m);
     }
 
     public boolean clicked() {
@@ -299,10 +322,13 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     private void registerMessages(EndPoint ep) {
-        ep.getKryo().register(Object[].class);
-        ep.getKryo().register(Array.class);
-        ep.getKryo().register(GameInitializationMessage.class);
-        ep.getKryo().register(DrawMessage.class);
+        Kryo k = ep.getKryo();
+        k.register(Object[].class);
+        k.register(Array.class);
+        k.register(GameInitializationMessage.class);
+        k.register(DrawMessage.class);
+        k.register(SummonMessage.class);
+        k.register(SpellTrapSetMessage.class);
     }
 
     private void drawCard(PlayerType player) {
@@ -332,5 +358,25 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void handleDrawMessage(DrawMessage m) {
         drawCard(PlayerType.indexToPlayer(m.player));
+    }
+
+    public void handleSummonMessage(SummonMessage m) {
+        PlayerType player = PlayerType.indexToPlayer(m.player);
+        Card card = CardManager.get(m.cardId);
+        if (Location.indexToLocation(m.location) == Location.HAND) {
+            Hand hand = hands[player.index];
+            hand.removeCard(card, playerId);
+        }
+        field.placeCardOnField(card, ZoneType.MONSTER, player, m.cardPlayMode, Location.FIELD);
+    }
+
+    public void handleSpellTrapSetMessage(SpellTrapSetMessage m) {
+        PlayerType player = PlayerType.indexToPlayer(m.player);
+        Card card = CardManager.get(m.cardId);
+        if (Location.indexToLocation(m.location) == Location.HAND) {
+            Hand hand = hands[player.index];
+            hand.removeCard(card, playerId);
+        }
+        field.placeCardOnField(card, ZoneType.SPELL_TRAP, player, CardPlayMode.FACE_DOWN, Location.FIELD);
     }
 }

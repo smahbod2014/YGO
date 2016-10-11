@@ -52,6 +52,11 @@ public class Card {
         this(filename, cardType, 0, 0, 0);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        return this.id.equals(((Card) obj).id);
+    }
+
     public void setLocation(Location location) {
         this.location = location;
     }

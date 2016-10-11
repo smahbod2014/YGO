@@ -65,6 +65,7 @@ public class MenuState extends GameState {
                     public void run() {
                         final ServerListener listener = new ServerListener();
                         final Server server = createServer(listener);
+                        listener.server = server;
                         synchronized (lock) {
                             try {
                                 lock.wait();

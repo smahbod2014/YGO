@@ -6,6 +6,8 @@ import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
+import com.ygo.game.Messages.SpellTrapSetMessage;
+import com.ygo.game.Messages.SummonMessage;
 
 public class ClientListener extends Listener {
 
@@ -28,6 +30,12 @@ public class ClientListener extends Listener {
                 }
                 else if (m instanceof DrawMessage) {
                     playState.handleDrawMessage((DrawMessage) m);
+                }
+                else if (m instanceof SummonMessage) {
+                    playState.handleSummonMessage((SummonMessage) m);
+                }
+                else if (m instanceof SpellTrapSetMessage) {
+                    playState.handleSpellTrapSetMessage((SpellTrapSetMessage) m);
                 }
             }
         });

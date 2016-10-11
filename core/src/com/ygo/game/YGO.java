@@ -3,41 +3,17 @@ package com.ygo.game;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g3d.decals.Decal;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.utils.Scaling;
-import com.badlogic.gdx.utils.Timer;
-import com.badlogic.gdx.utils.viewport.ScalingViewport;
-import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.StateManager;
-import com.ygo.game.Tests.Tests;
-import com.ygo.game.Types.CardPlayMode;
-import com.ygo.game.Types.CardType;
-import com.ygo.game.Types.Location;
-import com.ygo.game.Types.PlayerType;
-import com.ygo.game.Types.SummonType;
-import com.ygo.game.Types.ZoneType;
-import com.ygo.game.listeners.ActivateButtonListener;
-import com.ygo.game.listeners.NormalSummonButtonListener;
-import com.ygo.game.listeners.SetButtonListener;
-import static  com.ygo.game.Types.CardType.*;
+
+import static com.ygo.game.Types.CardType.effectMonster;
+import static com.ygo.game.Types.CardType.equipSpell;
+import static com.ygo.game.Types.CardType.normalMonster;
+import static com.ygo.game.Types.CardType.normalSpell;
+import static com.ygo.game.Types.CardType.normalTrap;
 
 public class YGO extends ApplicationAdapter {
 

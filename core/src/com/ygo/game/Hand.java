@@ -36,7 +36,7 @@ public class Hand {
     }
 
     public void removeCard(Card card, PlayerType fromPerspective) {
-        cards.removeValue(card, true);
+        cards.removeValue(card, false);
         refreshCardPositions(fromPerspective);
     }
 

@@ -5,6 +5,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.Ray;
 import com.ygo.game.Types.PlayerType;
 
 /**
@@ -17,6 +19,7 @@ public class Cell {
     public Vector2 size;
     public Card card; //What card is in this cell?
     public PlayerType owner;
+    public boolean isHighlighted = false;
 
     public Cell(float x, float z, float width, float height, PlayerType owner) {
         position = new Vector2(x, z);
@@ -24,10 +27,45 @@ public class Cell {
         this.owner = owner;
     }
 
+    public boolean testRay(Ray ray) {
+        //1.
+        Vector3 s1 = new Vector3(position.x, 0, position.y);
+        Vector3 s2 = s1.cpy().add(size.x, 0, 0);
+        Vector3 s3 = s1.cpy().add(0, 0, -size.y);
+        Vector3 ds21 = s2.cpy().sub(s1);
+        Vector3 ds31 = s3.cpy().sub(s1);
+        Vector3 n = ds21.cpy().crs(ds31);
+
+        //2.
+        Vector3 dR = ray.direction;
+        float ndotdR = n.dot(dR);
+        if (Math.abs(ndotdR) < 1e-6f) {
+            return false;
+        }
+
+        float t = -n.dot(ray.origin.cpy().sub(s1)) / ndotdR;
+        Vector3 M = ray.origin.cpy().add(dR.cpy().scl(t));
+
+        //3.
+        Vector3 dMS1 = M.cpy().sub(s1);
+        float u = dMS1.dot(ds21);
+        float v = dMS1.dot(ds31);
+
+        //4.
+        return (u >= 0.0f && u <= ds21.dot(ds21) && v >= 0.0f && v <= ds31.dot(ds31));
+
+    }
+
     public void draw(ShapeRenderer sr) {
         sr.set(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.WHITE);
         sr.box(position.x, 0, position.y, size.x, 0, size.y);
+
+        if (isHighlighted) {
+            sr.set(ShapeRenderer.ShapeType.Filled);
+            sr.setColor(Color.RED);
+            sr.box(position.x, 0, position.y, size.x, 0, size.y);
+        }
     }
 
     public void drawCard(DecalBatch db, PlayerType player) {

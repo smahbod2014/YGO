@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
@@ -32,14 +33,16 @@ public class Field {
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
     public Cell[][][] cells = new Cell[2][ZoneType.values().length][];
+    PerspectiveCamera perspectiveCamera;
 
     //temp variables
     private Card tempCard;
 
     public Field(float centerX, float centerY, PlayerType playerId) {
         sr = new ShapeRenderer();
+        sr.setAutoShapeType(true);
 
-        PerspectiveCamera perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
+        perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
         perspectiveCamera.position.set(0, 10, 10);
         perspectiveCamera.lookAt(0, 0, 0);
         perspectiveCamera.near = 1;
@@ -233,5 +236,20 @@ public class Field {
             which = mc.cards.size - 1;
         }
         return mc.cards.removeIndex(which);
+    }
+
+    public void highlightCells() {
+        int x = (int) (Gdx.graphics.getWidth() * 0.104f);
+        int y = (int) (Gdx.graphics.getHeight() * 0.037f);
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
+        Ray ray = perspectiveCamera.getPickRay(Gdx.input.getX(), Gdx.input.getY(), x, y, w, h);
+        for (PlayerType p : PlayerType.values()) {
+            for (ZoneType z : ZoneType.values()) {
+                for (Cell c : cells[p.index][z.index]) {
+                    c.isHighlighted =  c.testRay(ray);
+                }
+            }
+        }
     }
 }
