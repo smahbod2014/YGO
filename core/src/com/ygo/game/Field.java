@@ -26,29 +26,20 @@ public class Field {
     private static final float CARD_OFFSET_X = CELL_WIDTH * 0.1f;
     private static final float CARD_OFFSET_Y = CELL_HEIGHT * 0.1f;
     public static final float CARD_WIDTH_IN_CELL = CELL_WIDTH - CARD_OFFSET_X * 2;
-    public static final float CARD_HEIGHT_IN_CELL = CELL_HEIGHT - CARD_OFFSET_Y * 2;
-    private static final int MIDDLE_DIVIDE = CELL_HEIGHT / 2;
-    public static final Vector2 CURRENT_PLAYER_SPELL_TRAP_BASE = new Vector2();
-    public static final Vector2 CURRENT_PLAYER_MONSTER_BASE = new Vector2();
-    public static final Vector2 OPPONENT_PLAYER_SPELL_TRAP_BASE = new Vector2();
-    public static final Vector2 OPPONENT_PLAYER_MONSTER_BASE = new Vector2();
     private static final int CELLS_IN_ROW = 5;
     public static final int TOP_CARD = -1;
 
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
-    private Vector2 center;
     public Cell[][][] cells = new Cell[2][ZoneType.values().length][];
 
     //temp variables
     private Card tempCard;
-    private PerspectiveCamera perspectiveCamera;
 
     public Field(float centerX, float centerY, PlayerType playerId) {
-        center = new Vector2();
         sr = new ShapeRenderer();
 
-        perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
+        PerspectiveCamera perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
         perspectiveCamera.position.set(0, 10, 10);
         perspectiveCamera.lookAt(0, 0, 0);
         perspectiveCamera.near = 1;
@@ -56,14 +47,6 @@ public class Field {
         perspectiveCamera.update();
         sr.setProjectionMatrix(perspectiveCamera.combined);
         decalBatch = new DecalBatch(new CameraGroupStrategy(perspectiveCamera));
-
-        center.x = YGO.GAME_WIDTH * centerX - CELLS_IN_ROW * CELL_WIDTH / 2;
-        center.y = YGO.GAME_HEIGHT * centerY - (CELL_HEIGHT * 4 + MIDDLE_DIVIDE) / 2;
-
-        CURRENT_PLAYER_SPELL_TRAP_BASE.set(center);
-        CURRENT_PLAYER_MONSTER_BASE.set(CURRENT_PLAYER_SPELL_TRAP_BASE).add(0, CELL_HEIGHT);
-        OPPONENT_PLAYER_SPELL_TRAP_BASE.set(CURRENT_PLAYER_MONSTER_BASE).add(0, CELL_HEIGHT + MIDDLE_DIVIDE);
-        OPPONENT_PLAYER_MONSTER_BASE.set(OPPONENT_PLAYER_SPELL_TRAP_BASE).add(0, CELL_HEIGHT);
 
         initCells(playerId);
     }
