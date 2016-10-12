@@ -50,13 +50,6 @@ public class YGO extends ApplicationAdapter {
 
 
         StateManager.pushState(new MenuState());
-
-        if (CardManager.get("yugi/13945283").isMonster()) {
-            debug("Correct");
-        }
-        else {
-            debug("incorrect");
-        }
     }
 
 

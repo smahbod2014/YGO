@@ -29,6 +29,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.ygo.game.YGO.debug;
 import static com.ygo.game.YGO.info;
 
 /**
@@ -48,9 +49,9 @@ public class MenuState extends GameState {
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"), new TextureAtlas("ui/uiskin.atlas"));
         table = new Table();
 
-        TextButton playLocal = new TextButton("Host Local", skin);
-        playLocal.getLabel().setFontScale(1.2f);
-        playLocal.addListener(new ClickListener() {
+        TextButton hostLocal = new TextButton("Host Local", skin);
+        hostLocal.getLabel().setFontScale(1.2f);
+        hostLocal.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 final Dialog dialog = new Dialog("Creating game", skin);
@@ -148,7 +149,7 @@ public class MenuState extends GameState {
 
         table.setFillParent(true);
         table.center();
-        table.add(playLocal).width(200).height(50).padBottom(5f).row();
+        table.add(hostLocal).width(200).height(50).padBottom(5f).row();
         table.add(join).width(200).height(50).padBottom(5f).row();
         table.add(quit).width(200).height(50).row();
         stage.addActor(table);

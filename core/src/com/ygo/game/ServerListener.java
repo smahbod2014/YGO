@@ -5,6 +5,7 @@ import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 
@@ -31,6 +32,9 @@ public class ServerListener extends Listener {
             server.sendToAllTCP(m);
         }
         else if (m instanceof SpellTrapSetMessage) {
+            server.sendToAllTCP(m);
+        }
+        else if (m instanceof PhaseChangeMessage) {
             server.sendToAllTCP(m);
         }
     }

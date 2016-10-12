@@ -8,10 +8,14 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
@@ -25,12 +29,14 @@ import com.ygo.game.Field;
 import com.ygo.game.Hand;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
+import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 import com.ygo.game.ServerListener;
 import com.ygo.game.Tests.Tests;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.Location;
+import com.ygo.game.Types.Phase;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.SummonType;
 import com.ygo.game.Types.ZoneType;
@@ -57,11 +63,14 @@ public class PlayState extends GameState implements InputProcessor {
     boolean mouseClicked = false;
     Skin skin;
     Stage stage;
-    Table buttonTable;
-    TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet;
+    Table buttonTable, phaseTable;
+    TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet,
+            btnDrawPhase, btnStandbyPhase, btnMainPhase1, btnBattlePhase, btnMainPhase2, btnEndPhase;
+    Array<TextButton> phaseButtons = new Array<TextButton>();
     Card currentlySelectedCard;
     PlayerType turnPlayer = PlayerType.PLAYER_1;
     PlayerType playerId;
+    Phase currentPhase;
     Server server;
     Client client;
     boolean isServer;
@@ -86,6 +95,7 @@ public class PlayState extends GameState implements InputProcessor {
 
         initCommon();
         initGame();
+        info("Initialization finished");
     }
 
     public PlayState(Client client) {
@@ -108,6 +118,14 @@ public class PlayState extends GameState implements InputProcessor {
         hands[0] = new Hand(this, 0.625f, PlayerType.PLAYER_1);
         hands[1] = new Hand(this, 0.625f, PlayerType.PLAYER_2);
 
+        phaseButtons.add(btnDrawPhase);
+        phaseButtons.add(btnStandbyPhase);
+        phaseButtons.add(btnMainPhase1);
+        phaseButtons.add(btnBattlePhase);
+        phaseButtons.add(btnMainPhase2);
+        phaseButtons.add(btnEndPhase);
+
+
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
     }
@@ -126,6 +144,39 @@ public class PlayState extends GameState implements InputProcessor {
         buttonTable.setVisible(false);
 
         stage.addActor(buttonTable);
+
+        phaseTable = new Table();
+
+        btnDrawPhase = new TextButton("DP", skin);
+        btnStandbyPhase = new TextButton("SP", skin);
+        btnMainPhase1 = new TextButton("M1", skin);
+        btnBattlePhase = new TextButton("BP", skin);
+        btnMainPhase2 = new TextButton("M2", skin);
+        btnEndPhase = new TextButton("EP", skin);
+        setupPhaseButtonListener(btnBattlePhase, Phase.BATTLE_PHASE);
+        setupPhaseButtonListener(btnMainPhase2, Phase.MAIN_PHASE_2);
+        setupPhaseButtonListener(btnEndPhase, Phase.END_PHASE);
+
+        loc = new Vector2(805f, 385f);
+        float buttonWidth = 60;
+        phaseTable.setPosition(loc.x, loc.y, Align.center);
+        phaseTable.add(btnDrawPhase).width(buttonWidth).padRight(15);
+        phaseTable.add(btnStandbyPhase).width(buttonWidth).padRight(15);
+        phaseTable.add(btnMainPhase1).width(buttonWidth).padRight(15);
+        phaseTable.add(btnBattlePhase).width(buttonWidth).padRight(15);
+        phaseTable.add(btnMainPhase2).width(buttonWidth).padRight(15);
+        phaseTable.add(btnEndPhase).width(buttonWidth).padRight(15);
+
+        stage.addActor(phaseTable);
+    }
+
+    private void setupPhaseButtonListener(TextButton button, final Phase newPhase) {
+        button.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                client.sendTCP(new PhaseChangeMessage(newPhase.name()));
+            }
+        });
     }
 
     private void initGame() {
@@ -150,6 +201,7 @@ public class PlayState extends GameState implements InputProcessor {
         }
 
         server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
+        server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE.name()));
 
         Timer.schedule(new Timer.Task() {
             @Override
@@ -160,9 +212,29 @@ public class PlayState extends GameState implements InputProcessor {
         }, 1, 0.5f, 4);
     }
 
-
+    Vector2 loc = new Vector2();
+    Vector2 loc2 = new Vector2();
     @Override
     public void update(float dt) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            loc.x -= 5;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            loc.x += 5;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+            loc.y += 5;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+            loc.y -= 5;
+        }
+        phaseTable.setPosition(loc.x, loc.y);
+        if (!loc.equals(loc2)) {
+            debug(loc.toString());
+        }
+        loc2 = loc.cpy();
+
+
         Tests.input(dt);
         hands[0].handleInput(dt, playerId);
         hands[1].handleInput(dt, playerId);
@@ -329,12 +401,32 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(DrawMessage.class);
         k.register(SummonMessage.class);
         k.register(SpellTrapSetMessage.class);
+        k.register(PhaseChangeMessage.class);
     }
 
     private void drawCard(PlayerType player) {
         Card card = field.removeCard(player, ZoneType.DECK, Field.TOP_CARD);
         hands[player.index].addCard(card, playerId);
         debug(player.toString() + " drew " + card.id);
+    }
+
+    private void setPhaseButtonVisibleButOthersNot(TextButton button) {
+        for (TextButton b : phaseButtons) {
+            if (b != button) {
+                b.setVisible(false);
+            }
+            else {
+                b.setTouchable(Touchable.disabled);
+                b.setVisible(true);
+            }
+        }
+    }
+
+    private void showPhaseButton(TextButton... buttons) {
+        for (int i = 0; i < buttons.length; i++) {
+            buttons[i].setTouchable(Touchable.enabled);
+            buttons[i].setVisible(true);
+        }
     }
 
     public void handleGameInitializationMessage(GameInitializationMessage m) {
@@ -354,6 +446,8 @@ public class PlayState extends GameState implements InputProcessor {
 
         field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.PLAYER_1, CardPlayMode.FACE_UP, Location.FIELD);
         field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.FIELD_SPELL, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
+
+        turnPlayer = PlayerType.PLAYER_1;
     }
 
     public void handleDrawMessage(DrawMessage m) {
@@ -378,5 +472,52 @@ public class PlayState extends GameState implements InputProcessor {
             hand.removeCard(card, playerId);
         }
         field.placeCardOnField(card, ZoneType.SPELL_TRAP, player, CardPlayMode.FACE_DOWN, Location.FIELD);
+    }
+
+    public void handlePhaseChangeMessage(PhaseChangeMessage m) {
+        currentPhase = Phase.valueOf(m.newPhase);
+        if (playerId == turnPlayer) {
+            if (currentPhase == Phase.DRAW_PHASE) {
+                setPhaseButtonVisibleButOthersNot(btnDrawPhase);
+            }
+            else if (currentPhase == Phase.STANDBY_PHASE) {
+                setPhaseButtonVisibleButOthersNot(btnStandbyPhase);
+            }
+            else if (currentPhase == Phase.MAIN_PHASE_1) {
+                setPhaseButtonVisibleButOthersNot(btnMainPhase1);
+                showPhaseButton(btnBattlePhase, btnEndPhase);
+            }
+            else if (currentPhase == Phase.BATTLE_PHASE) {
+                setPhaseButtonVisibleButOthersNot(btnBattlePhase);
+                showPhaseButton(btnMainPhase2, btnEndPhase);
+            }
+            else if (currentPhase == Phase.MAIN_PHASE_2) {
+                setPhaseButtonVisibleButOthersNot(btnMainPhase2);
+                showPhaseButton(btnEndPhase);
+            }
+            else {
+                setPhaseButtonVisibleButOthersNot(btnEndPhase);
+            }
+        }
+        else {
+            if (currentPhase == Phase.DRAW_PHASE) {
+                setPhaseButtonVisibleButOthersNot(btnDrawPhase);
+            }
+            else if (currentPhase == Phase.STANDBY_PHASE) {
+                setPhaseButtonVisibleButOthersNot(btnStandbyPhase);
+            }
+            else if (currentPhase == Phase.MAIN_PHASE_1) {
+                setPhaseButtonVisibleButOthersNot(btnMainPhase1);
+            }
+            else if (currentPhase == Phase.BATTLE_PHASE) {
+                setPhaseButtonVisibleButOthersNot(btnBattlePhase);
+            }
+            else if (currentPhase == Phase.MAIN_PHASE_2) {
+                setPhaseButtonVisibleButOthersNot(btnMainPhase2);
+            }
+            else {
+                setPhaseButtonVisibleButOthersNot(btnEndPhase);
+            }
+        }
     }
 }
