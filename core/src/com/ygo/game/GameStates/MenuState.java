@@ -1,6 +1,7 @@
 package com.ygo.game.GameStates;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -19,6 +20,7 @@ import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
+import com.ygo.game.CenterHud;
 import com.ygo.game.ServerListener;
 import com.ygo.game.Utils;
 import com.ygo.game.YGO;
@@ -41,6 +43,7 @@ public class MenuState extends GameState {
     Stage stage;
     Skin skin;
     Table table;
+    CenterHud hud;
 
     public MenuState() {
         camera = new OrthographicCamera();
@@ -54,87 +57,16 @@ public class MenuState extends GameState {
         hostLocal.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                final Dialog dialog = new Dialog("Creating game", skin);
-                Table dialogTable = new Table();
-                dialogTable.pad(30f, 50f, 30f, 50f);
-                dialogTable.add(new Label("Waiting for another player to join...", skin));
-                dialog.add(dialogTable);
-                dialog.show(stage);
-
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        final ServerListener listener = new ServerListener();
-                        final Server server = createServer(listener);
-                        listener.server = server;
-                        synchronized (lock) {
-                            try {
-                                lock.wait();
-                            }
-                            catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        final Client client = createClient();
-                        Gdx.app.postRunnable(new Runnable() {
-                            @Override
-                            public void run() {
-                                dialog.hide();
-                                StateManager.pushState(new PlayState(server, listener, client));
-                            }
-                        });
-                    }
-                }).start();
-
-
-//                Timer.schedule(new Timer.Task() {
-//                    @Override
-//                    public void run() {
-//
-//                    }
-//                }, 2);
+                hostLocalClicked();
             }
         });
 
-        TextButton join = new TextButton("Join Local", skin);
-        join.getLabel().setFontScale(1.2f);
-        join.addListener(new ClickListener() {
+        TextButton joinLocal = new TextButton("Join Local", skin);
+        joinLocal.getLabel().setFontScale(1.2f);
+        joinLocal.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                final Dialog dialog = new Dialog("Joining game", skin);
-                Table dialogTable = new Table();
-                dialogTable.pad(30f, 50f, 30f, 50f);
-                dialogTable.add(new Label("Please wait...", skin));
-                dialog.add(dialogTable);
-                dialog.show(stage);
-
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        final Client client = createClient();
-                        Gdx.app.postRunnable(new Runnable() {
-                            @Override
-                            public void run() {
-                                dialog.hide();
-                                if (client == null) {
-                                    final Dialog error = new Dialog("Couldn't connect", skin);
-                                    TextButton ok = new TextButton("OK", skin);
-                                    ok.getLabel().setFontScale(1.2f);
-                                    ok.setWidth(100);
-                                    ok.setHeight(30);
-//                                    errorTable.add(ok).align(Align.bottomRight);
-                                    error.text("No active server found");
-                                    error.button(ok);
-//                                    error.add(errorTable);
-                                    error.show(stage);
-                                }
-                                else {
-                                    StateManager.pushState(new PlayState(client));
-                                }
-                            }
-                        });
-                    }
-                }).start();
+                joinLocalClicked();
             }
         });
 
@@ -150,21 +82,105 @@ public class MenuState extends GameState {
         table.setFillParent(true);
         table.center();
         table.add(hostLocal).width(200).height(50).padBottom(5f).row();
-        table.add(join).width(200).height(50).padBottom(5f).row();
+        table.add(joinLocal).width(200).height(50).padBottom(5f).row();
         table.add(quit).width(200).height(50).row();
         stage.addActor(table);
 
         Gdx.input.setInputProcessor(stage);
+
+        hud = new CenterHud(camera);
+    }
+
+    private void hostLocalClicked() {
+        final Dialog dialog = new Dialog("Creating game", skin);
+        Table dialogTable = new Table();
+        dialogTable.pad(30f, 50f, 30f, 50f);
+        dialogTable.add(new Label("Waiting for another player to join...", skin));
+        dialog.add(dialogTable);
+        dialog.show(stage);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final ServerListener listener = new ServerListener();
+                final Server server = createServer(listener);
+                listener.server = server;
+                synchronized (lock) {
+                    try {
+                        lock.wait();
+                    }
+                    catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                final Client client = createClient();
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        dialog.hide();
+                        StateManager.pushState(new PlayState(server, listener, client));
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void joinLocalClicked() {
+        final Dialog dialog = new Dialog("Joining game", skin);
+        Table dialogTable = new Table();
+        dialogTable.pad(30f, 50f, 30f, 50f);
+        dialogTable.add(new Label("Please wait...", skin));
+        dialog.add(dialogTable);
+        dialog.show(stage);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final Client client = createClient();
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        dialog.hide();
+                        if (client == null) {
+                            final Dialog error = new Dialog("Couldn't connect", skin);
+                            TextButton ok = new TextButton("OK", skin);
+                            ok.getLabel().setFontScale(1.2f);
+                            ok.setWidth(100);
+                            ok.setHeight(30);
+//                                    errorTable.add(ok).align(Align.bottomRight);
+                            error.text("No active server found");
+                            error.button(ok);
+//                                    error.add(errorTable);
+                            error.show(stage);
+                        }
+                        else {
+                            StateManager.pushState(new PlayState(client));
+                        }
+                    }
+                });
+            }
+        }).start();
     }
 
     @Override
     public void update(float dt) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+            hostLocalClicked();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            joinLocalClicked();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+            hud.flash("Draw Phase", 0.33f, 0.67f);
+        }
         stage.act(dt);
+        hud.update(dt);
     }
 
     @Override
     public void render() {
         stage.draw();
+        hud.render();
     }
 
     @Override

@@ -25,10 +25,12 @@ import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
+import com.ygo.game.CenterHud;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
+import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
@@ -58,6 +60,7 @@ public class PlayState extends GameState implements InputProcessor {
     SpriteBatch batch;
     public Field field;
     Hand[] hands = new Hand[2];
+    CenterHud centerHud;
 
     Vector2 mouseDown = new Vector2();
     boolean mouseClicked = false;
@@ -68,7 +71,7 @@ public class PlayState extends GameState implements InputProcessor {
             btnDrawPhase, btnStandbyPhase, btnMainPhase1, btnBattlePhase, btnMainPhase2, btnEndPhase;
     Array<TextButton> phaseButtons = new Array<TextButton>();
     Card currentlySelectedCard;
-    PlayerType turnPlayer = PlayerType.PLAYER_1;
+    public PlayerType turnPlayer = PlayerType.PLAYER_1;
     PlayerType playerId;
     Phase currentPhase;
     Server server;
@@ -128,6 +131,9 @@ public class PlayState extends GameState implements InputProcessor {
 
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
+
+        centerHud = new CenterHud(camera);
+        centerHud.setPosition(camera.viewportWidth / 2 + 20, 75);
     }
 
     private void initCardMenus() {
@@ -174,7 +180,7 @@ public class PlayState extends GameState implements InputProcessor {
         button.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                client.sendTCP(new PhaseChangeMessage(newPhase.name()));
+                client.sendTCP(new PhaseChangeMessage(newPhase));
             }
         });
     }
@@ -201,21 +207,40 @@ public class PlayState extends GameState implements InputProcessor {
         }
 
         server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
-        server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE.name()));
 
         Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
-                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_1.index));
-                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_2.index));
+                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_1));
+                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_2));
             }
         }, 1, 0.5f, 4);
+
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                server.sendToAllTCP(new NextPlayersTurnMessage(PlayerType.PLAYER_1));
+            }
+        }, 1 + 2.5f);
+
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
+            }
+        }, 1 + 2.5f + 1);
+
     }
 
     Vector2 loc = new Vector2();
     Vector2 loc2 = new Vector2();
+
     @Override
     public void update(float dt) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+            centerHud.flash("Draw Phase", 0.33f, 0.67f);
+            debug("Flashing message");
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
             loc.x -= 5;
         }
@@ -240,6 +265,7 @@ public class PlayState extends GameState implements InputProcessor {
         hands[1].handleInput(dt, playerId);
         field.highlightCells();
         stage.act(dt);
+        centerHud.update(dt);
     }
 
     @Override
@@ -252,6 +278,7 @@ public class PlayState extends GameState implements InputProcessor {
         batch.end();
 
         stage.draw();
+        centerHud.render();
 
         //reset mouse click event
         mouseClicked = false;
@@ -402,6 +429,7 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(SummonMessage.class);
         k.register(SpellTrapSetMessage.class);
         k.register(PhaseChangeMessage.class);
+        k.register(NextPlayersTurnMessage.class);
     }
 
     private void drawCard(PlayerType player) {
@@ -429,6 +457,15 @@ public class PlayState extends GameState implements InputProcessor {
         }
     }
 
+    private void advanceToPhase(final Phase next, float delay) {
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                client.sendTCP(new PhaseChangeMessage(next));
+            }
+        }, delay);
+    }
+
     public void handleGameInitializationMessage(GameInitializationMessage m) {
         Array<Card> p1Deck = new Array<Card>();
         Array<Card> p2Deck = new Array<Card>();
@@ -451,7 +488,7 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void handleDrawMessage(DrawMessage m) {
-        drawCard(PlayerType.indexToPlayer(m.player));
+        drawCard(PlayerType.valueOf(m.player));
     }
 
     public void handleSummonMessage(SummonMessage m) {
@@ -476,12 +513,19 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void handlePhaseChangeMessage(PhaseChangeMessage m) {
         currentPhase = Phase.valueOf(m.newPhase);
+        centerHud.flash(currentPhase.toString(), 1f/3f, 2f/3f);
         if (playerId == turnPlayer) {
             if (currentPhase == Phase.DRAW_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnDrawPhase);
+                // draw
+                client.sendTCP(new DrawMessage(playerId));
+                //TODO have to check if there are no events that occur during draw phase
+                advanceToPhase(Phase.STANDBY_PHASE, 1);
             }
             else if (currentPhase == Phase.STANDBY_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnStandbyPhase);
+                //TODO have to check if there are no events that occur during standby phase
+                advanceToPhase(Phase.MAIN_PHASE_1, 1);
             }
             else if (currentPhase == Phase.MAIN_PHASE_1) {
                 setPhaseButtonVisibleButOthersNot(btnMainPhase1);
@@ -519,5 +563,10 @@ public class PlayState extends GameState implements InputProcessor {
                 setPhaseButtonVisibleButOthersNot(btnEndPhase);
             }
         }
+    }
+
+    public void handleNextPlayersTurnMessage(NextPlayersTurnMessage m) {
+        turnPlayer = PlayerType.valueOf(m.player);
+        centerHud.flash(turnPlayer.toString() + "'s Turn", 1f/3f, 2f/3f);
     }
 }

@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
+import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.collision.Ray;
@@ -222,11 +223,11 @@ public class Field {
         int y = (int) (Gdx.graphics.getHeight() * 0.037f);
         int w = Gdx.graphics.getWidth();
         int h = Gdx.graphics.getHeight();
-        Gdx.gl.glViewport(x, y, w, h);
+        HdpiUtils.glViewport(x, y, w, h);
     }
 
     private void revertViewport() {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        HdpiUtils.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     public Card removeCard(PlayerType player, ZoneType where, int which) {

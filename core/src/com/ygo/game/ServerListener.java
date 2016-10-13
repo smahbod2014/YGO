@@ -1,13 +1,19 @@
 package com.ygo.game;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.utils.Timer;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
+import com.ygo.game.Types.Phase;
+
+import static com.ygo.game.YGO.debug;
 
 public class ServerListener extends Listener {
 
@@ -36,6 +42,29 @@ public class ServerListener extends Listener {
         }
         else if (m instanceof PhaseChangeMessage) {
             server.sendToAllTCP(m);
+            PhaseChangeMessage p = (PhaseChangeMessage) m;
+            if (Phase.valueOf(p.newPhase) == Phase.END_PHASE) {
+                debug("Server: End phase");
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        Timer.schedule(new Timer.Task() {
+                            @Override
+                            public void run() {
+                                server.sendToAllTCP(new NextPlayersTurnMessage(playState.turnPlayer.getOpponent()));
+                                debug("Server: Sending NextPlayersTurnMessage. Now " + playState.turnPlayer.getOpponent().toString() + "'s turn");
+                            }
+                        }, 1);
+
+                        Timer.schedule(new Timer.Task() {
+                            @Override
+                            public void run() {
+                                server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
+                            }
+                        }, 2);
+                    }
+                });
+            }
         }
     }
 }
