@@ -17,7 +17,7 @@ import static com.ygo.game.Types.CardType.normalTrap;
 
 public class YGO extends ApplicationAdapter {
 
-    public static int WINDOW_WIDTH = 960;
+    public static int WINDOW_WIDTH = 480 + 480 / 2;
     public static int WINDOW_HEIGHT = WINDOW_WIDTH * 9 / 16;
     public static final int GAME_WIDTH = 1280;
     public static final int GAME_HEIGHT = 720;

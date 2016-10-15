@@ -26,6 +26,7 @@ import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.CenterHud;
+import com.ygo.game.DelayedEvents;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
 import com.ygo.game.Messages.DrawMessage;
@@ -261,6 +262,7 @@ public class PlayState extends GameState implements InputProcessor {
 
 
         Tests.input(dt);
+        DelayedEvents.update(dt);
         hands[0].handleInput(dt, playerId);
         hands[1].handleInput(dt, playerId);
         field.highlightCells();
@@ -458,7 +460,14 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     private void advanceToPhase(final Phase next, float delay) {
-        Timer.schedule(new Timer.Task() {
+//        Timer.schedule(new Timer.Task() {
+//            @Override
+//            public void run() {
+//                client.sendTCP(new PhaseChangeMessage(next));
+//            }
+//        }, delay);
+
+        DelayedEvents.schedule(new Runnable() {
             @Override
             public void run() {
                 client.sendTCP(new PhaseChangeMessage(next));

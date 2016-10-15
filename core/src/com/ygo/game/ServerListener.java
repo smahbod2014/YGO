@@ -48,7 +48,7 @@ public class ServerListener extends Listener {
                 Gdx.app.postRunnable(new Runnable() {
                     @Override
                     public void run() {
-                        Timer.schedule(new Timer.Task() {
+                        DelayedEvents.schedule(new Runnable() {
                             @Override
                             public void run() {
                                 server.sendToAllTCP(new NextPlayersTurnMessage(playState.turnPlayer.getOpponent()));
@@ -56,12 +56,29 @@ public class ServerListener extends Listener {
                             }
                         }, 1);
 
-                        Timer.schedule(new Timer.Task() {
+                        DelayedEvents.schedule(new Runnable() {
                             @Override
                             public void run() {
                                 server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
+
                             }
                         }, 2);
+
+
+//                        Timer.schedule(new Timer.Task() {
+//                            @Override
+//                            public void run() {
+//                                server.sendToAllTCP(new NextPlayersTurnMessage(playState.turnPlayer.getOpponent()));
+//                                debug("Server: Sending NextPlayersTurnMessage. Now " + playState.turnPlayer.getOpponent().toString() + "'s turn");
+//                            }
+//                        }, 1);
+//
+//                        Timer.schedule(new Timer.Task() {
+//                            @Override
+//                            public void run() {
+//                                server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
+//                            }
+//                        }, 2);
                     }
                 });
             }
