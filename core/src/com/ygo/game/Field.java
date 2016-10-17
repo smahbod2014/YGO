@@ -3,6 +3,7 @@ package com.ygo.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.HdpiUtils;
@@ -10,6 +11,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
+import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
@@ -34,14 +36,16 @@ public class Field {
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
     public Cell[][][] cells = new Cell[2][ZoneType.values().length][];
-    PerspectiveCamera perspectiveCamera;
+    public static PerspectiveCamera perspectiveCamera;
+    PlayState playState;
 
     //temp variables
     private Card tempCard;
 
-    public Field(float centerX, float centerY, PlayerType playerId) {
+    public Field(PlayState playState, float centerX, float centerY, PlayerType playerId) {
         sr = new ShapeRenderer();
         sr.setAutoShapeType(true);
+        this.playState = playState;
 
         perspectiveCamera = new PerspectiveCamera(45, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
         perspectiveCamera.position.set(0, 10, 10);
@@ -218,9 +222,23 @@ public class Field {
         revertViewport();
     }
 
+    /**
+     * Render the ATK and DEF of cards on the field from the perspective of <code>playerId</code>
+     * @param playerId
+     */
+    public void renderStats(PlayerType playerId, SpriteBatch batch) {
+        prepareViewport();
+        for (PlayerType p : PlayerType.values()) {
+            for (Cell c : getZone(MONSTER, p)) {
+                c.drawStats(batch, playerId, perspectiveCamera);
+            }
+        }
+        revertViewport();
+    }
+
     private void prepareViewport() {
-        int x = (int) (Gdx.graphics.getWidth() * 0.104f);
-        int y = (int) (Gdx.graphics.getHeight() * 0.037f);
+        int x = getViewportX();
+        int y = getViewportY();
         int w = Gdx.graphics.getWidth();
         int h = Gdx.graphics.getHeight();
         HdpiUtils.glViewport(x, y, w, h);
@@ -228,6 +246,14 @@ public class Field {
 
     private void revertViewport() {
         HdpiUtils.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    public static int getViewportX() {
+        return (int) (Gdx.graphics.getWidth() * 0.104f);
+    }
+
+    public static int getViewportY() {
+        return (int) (Gdx.graphics.getHeight() * 0.037f);
     }
 
     public Card removeCard(PlayerType player, ZoneType where, int which) {
@@ -239,18 +265,29 @@ public class Field {
         return mc.cards.removeIndex(which);
     }
 
-    public void highlightCells() {
+    public boolean highlightCells() {
         int x = (int) (Gdx.graphics.getWidth() * 0.104f);
         int y = (int) (Gdx.graphics.getHeight() * 0.037f);
         int w = Gdx.graphics.getWidth();
         int h = Gdx.graphics.getHeight();
         Ray ray = perspectiveCamera.getPickRay(Gdx.input.getX(), Gdx.input.getY(), x, y, w, h);
+        boolean cardWasClicked = false;
         for (PlayerType p : PlayerType.values()) {
             for (ZoneType z : ZoneType.values()) {
                 for (Cell c : cells[p.index][z.index]) {
                     c.isHighlighted =  c.testRay(ray);
+                    if (c.isHighlighted && c.hasCard() && playState.clicked()) {
+                        playState.showFieldCardMenu(c.card);
+                        cardWasClicked = true;
+                    }
                 }
             }
         }
+
+        if (playState.clicked() && !cardWasClicked) {
+//            playState.hideCardMenu();
+        }
+
+        return cardWasClicked;
     }
 }

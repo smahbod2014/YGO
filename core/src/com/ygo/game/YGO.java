@@ -5,7 +5,10 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.StateManager;
 
@@ -17,14 +20,27 @@ import static com.ygo.game.Types.CardType.normalTrap;
 
 public class YGO extends ApplicationAdapter {
 
-    public static int WINDOW_WIDTH = 480 + 480 / 2;
+    public static int WINDOW_WIDTH = 960;
     public static int WINDOW_HEIGHT = WINDOW_WIDTH * 9 / 16;
     public static final int GAME_WIDTH = 1280;
     public static final int GAME_HEIGHT = 720;
+    public static BitmapFont cardStatsFont;
+    public static Sprite targetingCursor;
 
     @Override
     public void create() {
         Gdx.app.setLogLevel(Application.LOG_DEBUG);
+
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/calibri.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter params = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        params.size = 18;
+//        params.genMipMaps = true;
+        params.magFilter = Texture.TextureFilter.Linear;
+        params.minFilter = Texture.TextureFilter.Linear;
+//        params.borderWidth = 1.25f;
+        cardStatsFont = generator.generateFont(params);
+//        cardStatsFont.getData().setScale(1.0f);
+        generator.dispose();
 
         Card.FACE_DOWN_CARD_TEXTURE = new TextureRegion(new Texture("cards/cover.jpg"));
 
@@ -48,6 +64,7 @@ public class YGO extends ApplicationAdapter {
         CardManager.add("yugi/36304921", normalMonster(), 1400, 1300, 4); //Witty phantom
         CardManager.add("yugi/37120512", equipSpell()); //Sword of dark destruction
 
+        TargetingCursor.cursor = new Texture("targeting_cursor.png");
 
         StateManager.pushState(new MenuState());
     }
@@ -71,6 +88,7 @@ public class YGO extends ApplicationAdapter {
     @Override
     public void dispose() {
         StateManager.dispose();
+        cardStatsFont.dispose();
     }
 
     public static void info(String message) {

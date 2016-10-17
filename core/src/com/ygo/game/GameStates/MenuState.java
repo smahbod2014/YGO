@@ -2,9 +2,8 @@ package com.ygo.game.GameStates;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -13,26 +12,17 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
-import com.ygo.game.CenterHud;
+import com.ygo.game.TargetingCursor;
+import com.ygo.game.TextFlash;
 import com.ygo.game.ServerListener;
-import com.ygo.game.Utils;
 import com.ygo.game.YGO;
 import com.ygo.game.YGOServer;
 
 import java.io.IOException;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static com.ygo.game.YGO.debug;
-import static com.ygo.game.YGO.info;
 
 /**
  * Created by semahbod on 10/8/16.
@@ -43,7 +33,11 @@ public class MenuState extends GameState {
     Stage stage;
     Skin skin;
     Table table;
-    CenterHud hud;
+    TextFlash hud;
+
+    //temp
+    SpriteBatch batch;
+    TargetingCursor targetingCursor;
 
     public MenuState() {
         camera = new OrthographicCamera();
@@ -88,7 +82,13 @@ public class MenuState extends GameState {
 
         Gdx.input.setInputProcessor(stage);
 
-        hud = new CenterHud(camera);
+        hud = new TextFlash(camera);
+
+        batch = new SpriteBatch();
+        camera = new OrthographicCamera();
+        camera.setToOrtho(false, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
+        batch.setProjectionMatrix(camera.combined);
+        targetingCursor = new TargetingCursor(200, 200);
     }
 
     private void hostLocalClicked() {
@@ -173,6 +173,7 @@ public class MenuState extends GameState {
         if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
             hud.flash("Draw Phase", 0.33f, 0.67f);
         }
+        targetingCursor.update(dt);
         stage.act(dt);
         hud.update(dt);
     }
@@ -181,6 +182,10 @@ public class MenuState extends GameState {
     public void render() {
         stage.draw();
         hud.render();
+
+        batch.begin();
+        targetingCursor.render(batch);
+        batch.end();
     }
 
     @Override

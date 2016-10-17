@@ -7,11 +7,13 @@ import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 import com.ygo.game.Types.Phase;
+import com.ygo.game.Types.PlayerType;
 
 import static com.ygo.game.YGO.debug;
 
@@ -48,11 +50,12 @@ public class ServerListener extends Listener {
                 Gdx.app.postRunnable(new Runnable() {
                     @Override
                     public void run() {
+                        final PlayerType nextPlayer = playState.turnPlayer.getOpponent();
                         DelayedEvents.schedule(new Runnable() {
                             @Override
                             public void run() {
-                                server.sendToAllTCP(new NextPlayersTurnMessage(playState.turnPlayer.getOpponent()));
-                                debug("Server: Sending NextPlayersTurnMessage. Now " + playState.turnPlayer.getOpponent().toString() + "'s turn");
+                                server.sendToAllTCP(new NextPlayersTurnMessage(nextPlayer));
+                                debug("Server: Sending NextPlayersTurnMessage. Now " + nextPlayer.toString() + "'s turn");
                             }
                         }, 1);
 
@@ -63,22 +66,12 @@ public class ServerListener extends Listener {
 
                             }
                         }, 2);
-
-
-//                        Timer.schedule(new Timer.Task() {
-//                            @Override
-//                            public void run() {
-//                                server.sendToAllTCP(new NextPlayersTurnMessage(playState.turnPlayer.getOpponent()));
-//                                debug("Server: Sending NextPlayersTurnMessage. Now " + playState.turnPlayer.getOpponent().toString() + "'s turn");
-//                            }
-//                        }, 1);
-//
-//                        Timer.schedule(new Timer.Task() {
-//                            @Override
-//                            public void run() {
-//                                server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
-//                            }
-//                        }, 2);
+                        DelayedEvents.schedule(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.sendToAllTCP(new DrawMessage(nextPlayer));
+                            }
+                        }, 2.5f);
                     }
                 });
             }

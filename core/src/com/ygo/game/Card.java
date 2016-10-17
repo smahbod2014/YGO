@@ -21,6 +21,7 @@ public class Card {
 
     public static final float THICKNESS = 0.0125f;
     public static TextureRegion FACE_DOWN_CARD_TEXTURE;
+    public int maximumNumberOfAttacks = 1;
 
     public Texture image;
     public Decal decal, faceDown;
@@ -33,6 +34,7 @@ public class Card {
     public int atk;
     public int def;
     public int level;
+    public int attacksThisTurn = 0;
 
     /**
      * @param filename The filename of the card's image without the path or extension
@@ -62,7 +64,7 @@ public class Card {
     }
 
     public Card copy() {
-        return new Card(id, cardType);
+        return new Card(id, cardType, atk, def, level);
     }
 
     public boolean contains(Vector2 p, boolean opponentsCard) {
@@ -128,5 +130,9 @@ public class Card {
 
     public boolean isTrap() {
         return (cardType & CardType.TRAP) != 0;
+    }
+
+    public boolean canAttack() {
+        return attacksThisTurn < maximumNumberOfAttacks;
     }
 }

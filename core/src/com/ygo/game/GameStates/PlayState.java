@@ -17,7 +17,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
@@ -25,7 +24,9 @@ import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
-import com.ygo.game.CenterHud;
+import com.ygo.game.Cell;
+import com.ygo.game.TargetingCursor;
+import com.ygo.game.TextFlash;
 import com.ygo.game.DelayedEvents;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
@@ -46,6 +47,7 @@ import com.ygo.game.Types.ZoneType;
 import com.ygo.game.Utils;
 import com.ygo.game.YGO;
 import com.ygo.game.listeners.ActivateButtonListener;
+import com.ygo.game.listeners.AttackButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
 
@@ -57,20 +59,23 @@ import static com.ygo.game.YGO.info;
  */
 public class PlayState extends GameState implements InputProcessor {
 
+    private int maximumNormalSummons = 1;
+
     public OrthographicCamera camera;
     SpriteBatch batch;
     public Field field;
     Hand[] hands = new Hand[2];
-    CenterHud centerHud;
+    TextFlash phaseChangeTextFlash, damageTextFlash;
 
     Vector2 mouseDown = new Vector2();
     boolean mouseClicked = false;
     Skin skin;
     Stage stage;
     Table buttonTable, phaseTable;
-    TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet,
+    TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet, btnAttack,
             btnDrawPhase, btnStandbyPhase, btnMainPhase1, btnBattlePhase, btnMainPhase2, btnEndPhase;
     Array<TextButton> phaseButtons = new Array<TextButton>();
+    Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
     Card currentlySelectedCard;
     public PlayerType turnPlayer = PlayerType.PLAYER_1;
     PlayerType playerId;
@@ -78,6 +83,8 @@ public class PlayState extends GameState implements InputProcessor {
     Server server;
     Client client;
     boolean isServer;
+    /** how many normal summons has the player conducted this turn? */
+    int normalSummonsThisTurn;
 
     public PlayState(Server server, ServerListener serverListener, Client client) {
         this.server = server;
@@ -112,7 +119,7 @@ public class PlayState extends GameState implements InputProcessor {
         camera.setToOrtho(false, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
         batch.setProjectionMatrix(camera.combined);
 
-        field = new Field(0.291f, 0.5f, playerId);
+        field = new Field(this, 0.291f, 0.5f, playerId);
 
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"), new TextureAtlas("ui/uiskin.atlas"));
         stage = new Stage(new StretchViewport(YGO.GAME_WIDTH, YGO.GAME_HEIGHT, camera));
@@ -133,8 +140,11 @@ public class PlayState extends GameState implements InputProcessor {
         InputMultiplexer multiplexer = new InputMultiplexer(stage, this);
         Gdx.input.setInputProcessor(multiplexer);
 
-        centerHud = new CenterHud(camera);
-        centerHud.setPosition(camera.viewportWidth / 2 + 20, 75);
+        phaseChangeTextFlash = new TextFlash(camera);
+        phaseChangeTextFlash.setPosition(camera.viewportWidth / 2 + 20, 75);
+        damageTextFlash = new TextFlash(camera);
+        damageTextFlash.setPosition(camera.viewportWidth / 2 + 20, 75);
+        damageTextFlash.setColor(1, 0, 0, 1);
     }
 
     private void initCardMenus() {
@@ -147,6 +157,9 @@ public class PlayState extends GameState implements InputProcessor {
 
         btnSet = new TextButton("Set", skin);
         btnSet.addListener(new SetButtonListener(this));
+
+        btnAttack = new TextButton("Attack", skin);
+        btnAttack.addListener(new AttackButtonListener(this));
 
         buttonTable.setVisible(false);
 
@@ -209,27 +222,30 @@ public class PlayState extends GameState implements InputProcessor {
 
         server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
 
-        Timer.schedule(new Timer.Task() {
-            @Override
-            public void run() {
-                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_1));
-                server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_2));
-            }
-        }, 1, 0.5f, 4);
+        int cardsToDraw = 5;
+        for (int i = 0; i < cardsToDraw; i++) {
+            DelayedEvents.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_1));
+                    server.sendToAllTCP(new DrawMessage(PlayerType.PLAYER_2));
+                }
+            }, 1 + i * 0.5f);
+        }
 
-        Timer.schedule(new Timer.Task() {
+        DelayedEvents.schedule(new Runnable() {
             @Override
             public void run() {
                 server.sendToAllTCP(new NextPlayersTurnMessage(PlayerType.PLAYER_1));
             }
-        }, 1 + 2.5f);
+        }, 1 + cardsToDraw * 0.5f);
 
-        Timer.schedule(new Timer.Task() {
+        DelayedEvents.schedule(new Runnable() {
             @Override
             public void run() {
                 server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
             }
-        }, 1 + 2.5f + 1);
+        }, 1 + cardsToDraw * 0.5f + 1);
 
     }
 
@@ -239,7 +255,7 @@ public class PlayState extends GameState implements InputProcessor {
     @Override
     public void update(float dt) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
-            centerHud.flash("Draw Phase", 0.33f, 0.67f);
+            phaseChangeTextFlash.flash("Draw Phase", 0.33f, 0.67f);
             debug("Flashing message");
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
@@ -260,14 +276,26 @@ public class PlayState extends GameState implements InputProcessor {
         }
         loc2 = loc.cpy();
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F) && playerId == PlayerType.PLAYER_1) {
+            initCommon();
+            initGame();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
+            debug("Mouse pos: " + Utils.getMousePos(camera));
+        }
+
 
         Tests.input(dt);
         DelayedEvents.update(dt);
-        hands[0].handleInput(dt, playerId);
-        hands[1].handleInput(dt, playerId);
-        field.highlightCells();
+        for (TargetingCursor tc : targetingCursors) {
+            tc.update(dt);
+        }
+        if (!hands[0].handleInput(dt, playerId) && !hands[1].handleInput(dt, playerId) && !field.highlightCells() && clicked()) {
+            hideCardMenu();
+        }
         stage.act(dt);
-        centerHud.update(dt);
+        phaseChangeTextFlash.update(dt);
     }
 
     @Override
@@ -275,12 +303,16 @@ public class PlayState extends GameState implements InputProcessor {
         field.renderGrid();
         field.renderCards(playerId);
         batch.begin();
+        field.renderStats(playerId, batch);
         hands[0].draw(batch, playerId);
         hands[1].draw(batch, playerId);
+        for (TargetingCursor tc : targetingCursors) {
+            tc.render(batch);
+        }
         batch.end();
 
         stage.draw();
-        centerHud.render();
+        phaseChangeTextFlash.render();
 
         //reset mouse click event
         mouseClicked = false;
@@ -303,14 +335,29 @@ public class PlayState extends GameState implements InputProcessor {
         buttonTable.add(button).width(140).fill().row();
     }
 
+    private boolean hasMonsters(PlayerType player) {
+        for (Cell c : field.getZone(ZoneType.MONSTER, player)) {
+            if (c.hasCard()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean canNormalSummon() {
+        return normalSummonsThisTurn < maximumNormalSummons;
+    }
+
     public void showCardMenu(Card card) {
         currentlySelectedCard = card;
         buttonTable.clear();
         buttonTable.setVisible(true);
         buttonTable.setPosition(Utils.getMousePos(camera).x + 40, Utils.getMousePos(camera).y + 50);
         if (card.isMonster()) {
-            addButtonToTable(btnNormalSummon);
-            addButtonToTable(btnSet);
+            if (canNormalSummon()) {
+                addButtonToTable(btnNormalSummon);
+                addButtonToTable(btnSet);
+            }
             debug("Monster card clicked (" + card.id + ")");
         }
         else if (card.isSpell()) {
@@ -327,12 +374,25 @@ public class PlayState extends GameState implements InputProcessor {
         }
     }
 
+    public void showFieldCardMenu(Card card) {
+        currentlySelectedCard = card;
+        buttonTable.clear();
+        buttonTable.setVisible(true);
+        buttonTable.setPosition(Utils.getMousePos(camera).x + 40, Utils.getMousePos(camera).y + 50);
+        if (card.isMonster()) {
+            if (currentPhase == Phase.BATTLE_PHASE && card.canAttack()) {
+                buttonTable.add(btnAttack).width(100);
+            }
+        }
+    }
+
     public void hideCardMenu() {
         buttonTable.setVisible(false);
     }
 
     public void performNormalSummon() {
         performSummon(SummonType.NORMAL_SUMMON, CardPlayMode.FACE_UP | CardPlayMode.ATTACK_MODE);
+        normalSummonsThisTurn++;
     }
 
     public void performEffectActivation() {
@@ -460,13 +520,6 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     private void advanceToPhase(final Phase next, float delay) {
-//        Timer.schedule(new Timer.Task() {
-//            @Override
-//            public void run() {
-//                client.sendTCP(new PhaseChangeMessage(next));
-//            }
-//        }, delay);
-
         DelayedEvents.schedule(new Runnable() {
             @Override
             public void run() {
@@ -490,8 +543,17 @@ public class PlayState extends GameState implements InputProcessor {
         field.placeCardsInZone(p1Deck, ZoneType.DECK, PlayerType.PLAYER_1, CardPlayMode.FACE_DOWN, Location.DECK);
         field.placeCardsInZone(p2Deck, ZoneType.DECK, PlayerType.PLAYER_2, CardPlayMode.FACE_DOWN, Location.DECK);
 
+        for (PlayerType p : PlayerType.values()) {
+            for (ZoneType z : ZoneType.values()) {
+                for (Cell c : field.getZone(z, p)) {
+                    c.card = null;
+                }
+            }
+        }
+
         field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.PLAYER_1, CardPlayMode.FACE_UP, Location.FIELD);
-        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.FIELD_SPELL, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
+        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
+        field.placeCardOnField(CardManager.get("yugi/15025844").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
 
         turnPlayer = PlayerType.PLAYER_1;
     }
@@ -522,7 +584,7 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void handlePhaseChangeMessage(PhaseChangeMessage m) {
         currentPhase = Phase.valueOf(m.newPhase);
-        centerHud.flash(currentPhase.toString(), 1f/3f, 2f/3f);
+        phaseChangeTextFlash.flash(currentPhase.toString(), 1f / 3f, 2f / 3f);
         if (playerId == turnPlayer) {
             if (currentPhase == Phase.DRAW_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnDrawPhase);
@@ -576,6 +638,20 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void handleNextPlayersTurnMessage(NextPlayersTurnMessage m) {
         turnPlayer = PlayerType.valueOf(m.player);
-        centerHud.flash(turnPlayer.toString() + "'s Turn", 1f/3f, 2f/3f);
+        phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f/3f, 2f/3f);
+    }
+
+    public void chooseAttackTarget() {
+        if (!hasMonsters(playerId.getOpponent())) {
+            damageTextFlash.flash("-" + currentlySelectedCard.atk, 1f/3, 2f/3);
+            currentlySelectedCard.attacksThisTurn++;
+        }
+        else {
+            for (Cell c : field.getZone(ZoneType.MONSTER, playerId.getOpponent())) {
+                if (c.hasCard()) {
+                    targetingCursors.add(new TargetingCursor(c));
+                }
+            }
+        }
     }
 }

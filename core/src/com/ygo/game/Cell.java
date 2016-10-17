@@ -1,6 +1,8 @@
 package com.ygo.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -8,6 +10,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.ygo.game.Types.PlayerType;
+
+import static com.ygo.game.YGO.debug;
 
 /**
  * Created by semahbod on 10/7/16.
@@ -56,6 +60,10 @@ public class Cell {
 
     }
 
+    public boolean hasCard() {
+        return card != null;
+    }
+
     public void draw(ShapeRenderer sr) {
         sr.set(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.WHITE);
@@ -76,5 +84,21 @@ public class Cell {
         float x = position.x + (size.x - cardSize.x) / 2;
         float z = position.y - (size.y - cardSize.y) / 2;
         card.drawOnField(db, x, z, cardSize.x, cardSize.y, player != owner);
+    }
+
+    public void drawStats(SpriteBatch sb, PlayerType player, PerspectiveCamera camera) {
+        if (card == null) {
+            return;
+        }
+
+        //TODO use the one in Utils
+        Vector3 screenPos = new Vector3(position.x + size.x / 2, 0, position.y);
+        camera.project(screenPos, Field.getViewportX(), Field.getViewportY(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        float scaleX = (float) YGO.GAME_WIDTH / Gdx.graphics.getWidth();
+        float scaleY = (float) YGO.GAME_HEIGHT / Gdx.graphics.getHeight();
+        screenPos.x *= scaleX;
+        screenPos.y *= scaleY;
+        screenPos.y -= 5;
+        YGO.cardStatsFont.draw(sb, card.atk + "/" + card.def, screenPos.x, screenPos.y);
     }
 }

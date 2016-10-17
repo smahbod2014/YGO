@@ -68,7 +68,7 @@ public class Hand {
         return cards.get(position);
     }
 
-    public void handleInput(float dt, PlayerType playerId) {
+    public boolean handleInput(float dt, PlayerType playerId) {
 //        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
 //            centerX--;
 //            refreshCardPositions();
@@ -98,8 +98,10 @@ public class Hand {
         }
 
         if (playerId == player && playState.clicked() && !cardWasClicked) {
-            playState.hideCardMenu();
+//            playState.hideCardMenu();
         }
+
+        return cardWasClicked;
     }
 
     public void draw(SpriteBatch sb, PlayerType playerId) {

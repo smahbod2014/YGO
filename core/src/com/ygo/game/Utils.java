@@ -46,4 +46,14 @@ public class Utils {
             arr[arr.length - i - 1] = temp;
         }
     }
+
+    public static Vector2 worldPerspectiveToScreen(float x, float z, Camera camera) {
+        Vector3 screenPos = new Vector3(x, 0, z);
+        camera.project(screenPos, Field.getViewportX(), Field.getViewportY(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        float scaleX = (float) YGO.GAME_WIDTH / Gdx.graphics.getWidth();
+        float scaleY = (float) YGO.GAME_HEIGHT / Gdx.graphics.getHeight();
+        screenPos.x *= scaleX;
+        screenPos.y *= scaleY;
+        return new Vector2(screenPos.x, screenPos.y);
+    }
 }
