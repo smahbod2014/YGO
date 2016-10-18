@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Server;
+import com.ygo.game.Explosion;
 import com.ygo.game.TargetingCursor;
 import com.ygo.game.TextFlash;
 import com.ygo.game.ServerListener;
@@ -38,6 +39,7 @@ public class MenuState extends GameState {
     //temp
     SpriteBatch batch;
     TargetingCursor targetingCursor;
+    Explosion explosion;
 
     public MenuState() {
         camera = new OrthographicCamera();
@@ -173,7 +175,16 @@ public class MenuState extends GameState {
         if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
             hud.flash("Draw Phase", 0.33f, 0.67f);
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            explosion = new Explosion(300, 100);
+        }
         targetingCursor.update(dt);
+        if (explosion != null) {
+            explosion.update(dt);
+            if (explosion.isDead) {
+                explosion = null;
+            }
+        }
         stage.act(dt);
         hud.update(dt);
     }
@@ -185,6 +196,9 @@ public class MenuState extends GameState {
 
         batch.begin();
         targetingCursor.render(batch);
+        if (explosion != null) {
+            explosion.render(batch);
+        }
         batch.end();
     }
 

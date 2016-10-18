@@ -36,6 +36,7 @@ public class Field {
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
     public Cell[][][] cells = new Cell[2][ZoneType.values().length][];
+    public Array<Cell> flatCells = new Array<Cell>();
     public static PerspectiveCamera perspectiveCamera;
     PlayState playState;
 
@@ -100,10 +101,10 @@ public class Field {
         float topBottomMargin = 10f * 0.1f;
         float startX = -5 + sideWidth + gapFromSide;
         for (int i = 0; i < 5; i++) {
-            cells[player1][SPELL_TRAP.index][i] = new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1);
+            cells[player1][SPELL_TRAP.index][i] = new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1, i);
         }
         for (int i = 0; i < 5; i++) {
-            cells[player1][MONSTER.index][i] = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1);
+            cells[player1][MONSTER.index][i] = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1, i);
         }
 
         float rightStartX = startX + height * 5 + gapFromSide;
@@ -123,10 +124,10 @@ public class Field {
         cells[player2][DECK.index][0] = new MultiCardCell(-5, 5 - height * 5 - padding * 5, sideWidth, height, p2);
 
         for (int i = 0; i < 5; i++) {
-            cells[player2][SPELL_TRAP.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2);
+            cells[player2][SPELL_TRAP.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2, 4 - i);
         }
         for (int i = 0; i < 5; i++) {
-            cells[player2][MONSTER.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2);
+            cells[player2][MONSTER.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2, 4 - i);
         }
 
         //if we are player 1, we need to reverse player 2's monster/spelltrap zones
@@ -137,6 +138,14 @@ public class Field {
         else {
             Utils.reverseArray(getZone(MONSTER, PLAYER_1));
             Utils.reverseArray(getZone(SPELL_TRAP, PLAYER_1));
+        }
+
+        for (PlayerType p : PlayerType.values()) {
+            for (ZoneType z : ZoneType.values()) {
+                for (Cell c : getZone(z, p)) {
+                    flatCells.add(c);
+                }
+            }
         }
     }
 
@@ -231,6 +240,8 @@ public class Field {
         for (PlayerType p : PlayerType.values()) {
             for (Cell c : getZone(MONSTER, p)) {
                 c.drawStats(batch, playerId, perspectiveCamera);
+                Vector2 pos = Utils.worldPerspectiveToScreen(c.position.x + c.size.x / 2, c.position.y - c.size.y / 2, perspectiveCamera);
+                YGO.cardStatsFont.draw(batch, "" + c.index, pos.x, pos.y);
             }
         }
         revertViewport();
@@ -277,8 +288,14 @@ public class Field {
                 for (Cell c : cells[p.index][z.index]) {
                     c.isHighlighted =  c.testRay(ray);
                     if (c.isHighlighted && c.hasCard() && playState.clicked()) {
-                        playState.showFieldCardMenu(c.card);
-                        cardWasClicked = true;
+                        if (c.owner == playState.playerId) {
+                            playState.showFieldCardMenu(c.card);
+                            cardWasClicked = true;
+                        }
+                        // The target cursor is hovering over this card (i.e. attack target)
+                        if (c.targetingCursorOn) {
+                            playState.confirmTarget(c);
+                        }
                     }
                 }
             }
@@ -289,5 +306,40 @@ public class Field {
         }
 
         return cardWasClicked;
+    }
+
+    public void clearTargeting() {
+        for (Cell c : flatCells) {
+            c.targetingCursorOn = false;
+        }
+    }
+
+    public Cell getCellByIndex(PlayerType player, ZoneType zone, int index) {
+        Cell[] cells = getZone(zone, player);
+        for (Cell c : cells) {
+            if (c.index == index) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    public void drawDirectAttackLine(PlayerType attacker, int cellIndexOrigin) {
+        drawAttackLine(attacker, cellIndexOrigin, -1);
+    }
+
+    public void drawAttackLine(PlayerType attacker, int cellIndexOrigin, int cellIndexDestination) {
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        sr.setColor(Color.RED);
+        Vector2 origin = getCellByIndex(attacker, MONSTER, cellIndexOrigin).getCenter();
+        Vector2 dest;
+        if (cellIndexDestination >= 0) {
+            dest = getCellByIndex(attacker.getOpponent(), MONSTER, cellIndexDestination).getCenter();
+        }
+        else {
+            dest = getCellByIndex(attacker.getOpponent(), SPELL_TRAP, 2).getCenter();
+        }
+        sr.line(origin.x, 0, origin.y, dest.x, 0, dest.y);
+        sr.end();
     }
 }

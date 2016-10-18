@@ -7,6 +7,7 @@ import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.Messages.AttackMessage;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
@@ -75,6 +76,9 @@ public class ServerListener extends Listener {
                     }
                 });
             }
+        }
+        else if (m instanceof AttackMessage) {
+            server.sendToAllTCP(m);
         }
     }
 }

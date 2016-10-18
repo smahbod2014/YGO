@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
 
 
 public class Utils {
@@ -55,5 +56,15 @@ public class Utils {
         screenPos.x *= scaleX;
         screenPos.y *= scaleY;
         return new Vector2(screenPos.x, screenPos.y);
+    }
+
+    public static <T> Array<T> convert2dArrayToGdxArray(T[][] matrix) {
+        Array<T> result = new Array<T>();
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < matrix[i].length; j++) {
+                result.add(matrix[i][j]);
+            }
+        }
+        return result;
     }
 }

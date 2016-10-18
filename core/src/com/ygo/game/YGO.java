@@ -65,6 +65,7 @@ public class YGO extends ApplicationAdapter {
         CardManager.add("yugi/37120512", equipSpell()); //Sword of dark destruction
 
         TargetingCursor.cursor = new Texture("targeting_cursor.png");
+        Explosion.spritesheet = new Texture("explosion_spritesheet.png");
 
         StateManager.pushState(new MenuState());
     }

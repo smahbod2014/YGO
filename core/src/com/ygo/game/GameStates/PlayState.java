@@ -22,9 +22,13 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
+import com.ygo.game.AttackData;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Cell;
+import com.ygo.game.Explosion;
+import com.ygo.game.Messages.AttackMessage;
+import com.ygo.game.MultiCardCell;
 import com.ygo.game.TargetingCursor;
 import com.ygo.game.TextFlash;
 import com.ygo.game.DelayedEvents;
@@ -61,6 +65,8 @@ public class PlayState extends GameState implements InputProcessor {
 
     private int maximumNormalSummons = 1;
 
+    private enum Intent {NONE, ATTACKING}
+
     public OrthographicCamera camera;
     SpriteBatch batch;
     public Field field;
@@ -76,15 +82,20 @@ public class PlayState extends GameState implements InputProcessor {
             btnDrawPhase, btnStandbyPhase, btnMainPhase1, btnBattlePhase, btnMainPhase2, btnEndPhase;
     Array<TextButton> phaseButtons = new Array<TextButton>();
     Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
+    Array<Explosion> explosions = new Array<Explosion>();
     Card currentlySelectedCard;
     public PlayerType turnPlayer = PlayerType.PLAYER_1;
-    PlayerType playerId;
+    public PlayerType playerId;
     Phase currentPhase;
     Server server;
     Client client;
     boolean isServer;
-    /** how many normal summons has the player conducted this turn? */
+    /**
+     * how many normal summons has the player conducted this turn?
+     */
     int normalSummonsThisTurn;
+    Intent intent;
+    boolean attackTakingPlace;
 
     public PlayState(Server server, ServerListener serverListener, Client client) {
         this.server = server;
@@ -293,9 +304,18 @@ public class PlayState extends GameState implements InputProcessor {
         }
         if (!hands[0].handleInput(dt, playerId) && !hands[1].handleInput(dt, playerId) && !field.highlightCells() && clicked()) {
             hideCardMenu();
+            clearAllTargeting();
+        }
+        for (int i = explosions.size - 1; i >= 0; i--) {
+            Explosion e = explosions.get(i);
+            e.update(dt);
+            if (e.isDead) {
+                explosions.removeValue(e, true);
+            }
         }
         stage.act(dt);
         phaseChangeTextFlash.update(dt);
+        damageTextFlash.update(dt);
     }
 
     @Override
@@ -309,10 +329,14 @@ public class PlayState extends GameState implements InputProcessor {
         for (TargetingCursor tc : targetingCursors) {
             tc.render(batch);
         }
+        for (Explosion e : explosions) {
+            e.render(batch);
+        }
         batch.end();
 
         stage.draw();
         phaseChangeTextFlash.render();
+        damageTextFlash.render();
 
         //reset mouse click event
         mouseClicked = false;
@@ -492,6 +516,7 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(SpellTrapSetMessage.class);
         k.register(PhaseChangeMessage.class);
         k.register(NextPlayersTurnMessage.class);
+        k.register(AttackMessage.class);
     }
 
     private void drawCard(PlayerType player) {
@@ -638,20 +663,67 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void handleNextPlayersTurnMessage(NextPlayersTurnMessage m) {
         turnPlayer = PlayerType.valueOf(m.player);
-        phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f/3f, 2f/3f);
+        phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f / 3f, 2f / 3f);
     }
 
-    public void chooseAttackTarget() {
+    public void handleAttackMessage(AttackMessage m) {
+        final PlayerType conducting = PlayerType.valueOf(m.player);
+        Cell[] zone = field.getZone(ZoneType.MONSTER, conducting.getOpponent());
+        int index = m.targetCell;
+        if (conducting == playerId) {
+            intent = Intent.NONE;
+        }
+        final Cell cell = zone[index];
+        explosions.add(new Explosion(cell));
+        damageTextFlash.flash("-" + CardManager.get(m.cardId).atk, 1f / 3, 2f / 3);
+        AttackData.attackTakingPlace = true;
+        AttackData.attacker = conducting;
+//        AttackData.cellOrigin =
+        DelayedEvents.schedule(new Runnable() {
+            @Override
+            public void run() {
+                Card card = cell.card;
+                card.location = Location.GRAVEYARD;
+                card.playMode = CardPlayMode.FACE_UP;
+                Cell[] graveyard = field.getZone(ZoneType.GRAVEYARD, conducting.getOpponent());
+                MultiCardCell mc = (MultiCardCell) graveyard[0];
+                mc.cards.add(cell.card);
+                cell.card = null;
+            }
+        }, 1);
+    }
+
+    public void displayAttackTargets() {
         if (!hasMonsters(playerId.getOpponent())) {
-            damageTextFlash.flash("-" + currentlySelectedCard.atk, 1f/3, 2f/3);
+            damageTextFlash.flash("-" + currentlySelectedCard.atk, 1f / 3, 2f / 3);
             currentlySelectedCard.attacksThisTurn++;
         }
         else {
+            intent = Intent.ATTACKING;
             for (Cell c : field.getZone(ZoneType.MONSTER, playerId.getOpponent())) {
                 if (c.hasCard()) {
                     targetingCursors.add(new TargetingCursor(c));
+                    c.targetingCursorOn = true;
                 }
             }
         }
+    }
+
+    public void confirmTarget(Cell cell) {
+        if (intent == Intent.NONE) {
+            return;
+        }
+
+        //TODO: NEED TO INDICATE THE CELL THAT WE ARE ATTACKING FROM
+        if (intent == Intent.ATTACKING) {
+            client.sendTCP(new AttackMessage(playerId, cell.index, currentlySelectedCard.id));
+            clearAllTargeting();
+            currentlySelectedCard.attacksThisTurn++;
+        }
+    }
+
+    private void clearAllTargeting() {
+        targetingCursors.clear();
+        field.clearTargeting();
     }
 }

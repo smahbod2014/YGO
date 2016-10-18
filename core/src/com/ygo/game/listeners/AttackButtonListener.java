@@ -15,6 +15,6 @@ public class AttackButtonListener extends ButtonListener {
     @Override
     public void clicked(InputEvent event, float x, float y) {
         super.clicked(event, x, y);
-        playState.chooseAttackTarget();
+        playState.displayAttackTargets();
     }
 }

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
+import com.ygo.game.Messages.AttackMessage;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
@@ -44,6 +45,9 @@ public class ClientListener extends Listener {
                 }
                 else if (m instanceof NextPlayersTurnMessage) {
                     playState.handleNextPlayersTurnMessage((NextPlayersTurnMessage) m);
+                }
+                else if (m instanceof AttackMessage) {
+                    playState.handleAttackMessage((AttackMessage) m);
                 }
             }
         });

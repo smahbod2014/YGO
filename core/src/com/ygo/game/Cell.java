@@ -23,12 +23,23 @@ public class Cell {
     public Vector2 size;
     public Card card; //What card is in this cell?
     public PlayerType owner;
+    public int index;
     public boolean isHighlighted = false;
+    public boolean targetingCursorOn;
 
     public Cell(float x, float z, float width, float height, PlayerType owner) {
+        this(x, z, width, height, owner, 0);
+    }
+
+    public Cell(float x, float z, float width, float height, PlayerType owner, int index) {
         position = new Vector2(x, z);
         size = new Vector2(width, height);
         this.owner = owner;
+        this.index = index;
+    }
+
+    public Vector2 getCenter() {
+        return new Vector2(position.x + size.x / 2, position.y - size.y / 2);
     }
 
     public boolean testRay(Ray ray) {
