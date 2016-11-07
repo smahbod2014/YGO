@@ -66,6 +66,7 @@ public class YGO extends ApplicationAdapter {
 
         TargetingCursor.cursor = new Texture("targeting_cursor.png");
         Explosion.spritesheet = new Texture("explosion_spritesheet.png");
+        AttackSwordVisual.sword = new Texture("attack_sword.png");
 
         StateManager.pushState(new MenuState());
     }

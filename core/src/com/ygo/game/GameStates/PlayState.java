@@ -23,6 +23,7 @@ import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.AttackData;
+import com.ygo.game.AttackSwordVisual;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Cell;
@@ -55,6 +56,9 @@ import com.ygo.game.listeners.AttackButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static com.ygo.game.YGO.debug;
 import static com.ygo.game.YGO.info;
 
@@ -83,7 +87,9 @@ public class PlayState extends GameState implements InputProcessor {
     Array<TextButton> phaseButtons = new Array<TextButton>();
     Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
     Array<Explosion> explosions = new Array<Explosion>();
+    Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<Integer, AttackSwordVisual>();
     Card currentlySelectedCard;
+    Cell currentlySelectedCell;
     public PlayerType turnPlayer = PlayerType.PLAYER_1;
     public PlayerType playerId;
     Phase currentPhase;
@@ -206,6 +212,11 @@ public class PlayState extends GameState implements InputProcessor {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 client.sendTCP(new PhaseChangeMessage(newPhase));
+
+                //TODO: Move this to the handleMessage() methods
+                if (newPhase == Phase.MAIN_PHASE_2 || newPhase == Phase.END_PHASE) {
+                    attackSwordVisuals.clear();
+                }
             }
         });
     }
@@ -302,6 +313,9 @@ public class PlayState extends GameState implements InputProcessor {
         for (TargetingCursor tc : targetingCursors) {
             tc.update(dt);
         }
+        for (AttackSwordVisual asv : attackSwordVisuals.values()) {
+            asv.update(dt);
+        }
         if (!hands[0].handleInput(dt, playerId) && !hands[1].handleInput(dt, playerId) && !field.highlightCells() && clicked()) {
             hideCardMenu();
             clearAllTargeting();
@@ -331,6 +345,9 @@ public class PlayState extends GameState implements InputProcessor {
         }
         for (Explosion e : explosions) {
             e.render(batch);
+        }
+        for (AttackSwordVisual asv : attackSwordVisuals.values()) {
+            asv.render(batch);
         }
         batch.end();
 
@@ -398,8 +415,9 @@ public class PlayState extends GameState implements InputProcessor {
         }
     }
 
-    public void showFieldCardMenu(Card card) {
+    public void showFieldCardMenu(Card card, Cell cell) {
         currentlySelectedCard = card;
+        currentlySelectedCell = cell;
         buttonTable.clear();
         buttonTable.setVisible(true);
         buttonTable.setPosition(Utils.getMousePos(camera).x + 40, Utils.getMousePos(camera).y + 50);
@@ -576,9 +594,9 @@ public class PlayState extends GameState implements InputProcessor {
             }
         }
 
-        field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.PLAYER_1, CardPlayMode.FACE_UP, Location.FIELD);
-        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
-        field.placeCardOnField(CardManager.get("yugi/15025844").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.FACE_UP, Location.FIELD);
+        field.placeCardOnField(CardManager.get("93013676").copy(), ZoneType.MONSTER, PlayerType.PLAYER_1, CardPlayMode.createFaceUpAttackMode(), Location.FIELD);
+        field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.createFaceUpAttackMode(), Location.FIELD);
+        field.placeCardOnField(CardManager.get("yugi/15025844").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.createFaceUpAttackMode(), Location.FIELD);
 
         turnPlayer = PlayerType.PLAYER_1;
     }
@@ -630,6 +648,7 @@ public class PlayState extends GameState implements InputProcessor {
             else if (currentPhase == Phase.BATTLE_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnBattlePhase);
                 showPhaseButton(btnMainPhase2, btnEndPhase);
+                showAttackSwordVisualsForEligibleMonsters();
             }
             else if (currentPhase == Phase.MAIN_PHASE_2) {
                 setPhaseButtonVisibleButOthersNot(btnMainPhase2);
@@ -657,6 +676,15 @@ public class PlayState extends GameState implements InputProcessor {
             }
             else {
                 setPhaseButtonVisibleButOthersNot(btnEndPhase);
+            }
+        }
+    }
+
+    private void showAttackSwordVisualsForEligibleMonsters() {
+        Cell[] zone = field.getZone(ZoneType.MONSTER, playerId);
+        for (Cell c : zone) {
+            if (c.hasCard() && c.card.canAttack()) {
+                attackSwordVisuals.put(c.index, new AttackSwordVisual(c));
             }
         }
     }
@@ -719,6 +747,9 @@ public class PlayState extends GameState implements InputProcessor {
             client.sendTCP(new AttackMessage(playerId, cell.index, currentlySelectedCard.id));
             clearAllTargeting();
             currentlySelectedCard.attacksThisTurn++;
+            if (!currentlySelectedCard.canAttack()) {
+                attackSwordVisuals.remove(currentlySelectedCell.index);
+            }
         }
     }
 

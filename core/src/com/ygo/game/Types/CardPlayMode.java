@@ -9,6 +9,10 @@ public class CardPlayMode {
     public static final int ATTACK_MODE = 4;
     public static final int DEFENSE_MODE = 8;
 
+    public static int createFaceUpAttackMode() {
+        return FACE_UP | ATTACK_MODE;
+    }
+
     public static boolean isFaceDown(int mode) {
         return (mode & FACE_DOWN) != 0;
     }
@@ -17,4 +21,7 @@ public class CardPlayMode {
         return (mode & (FACE_DOWN | DEFENSE_MODE)) == (FACE_DOWN | DEFENSE_MODE);
     }
 
+    public static boolean isAttackMode(int mode) {
+        return (mode & ATTACK_MODE) != 0;
+    }
 }

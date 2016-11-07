@@ -133,6 +133,6 @@ public class Card {
     }
 
     public boolean canAttack() {
-        return attacksThisTurn < maximumNumberOfAttacks;
+        return CardPlayMode.isAttackMode(playMode) && attacksThisTurn < maximumNumberOfAttacks;
     }
 }

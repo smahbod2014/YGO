@@ -289,7 +289,7 @@ public class Field {
                     c.isHighlighted =  c.testRay(ray);
                     if (c.isHighlighted && c.hasCard() && playState.clicked()) {
                         if (c.owner == playState.playerId) {
-                            playState.showFieldCardMenu(c.card);
+                            playState.showFieldCardMenu(c.card, c);
                             cardWasClicked = true;
                         }
                         // The target cursor is hovering over this card (i.e. attack target)
