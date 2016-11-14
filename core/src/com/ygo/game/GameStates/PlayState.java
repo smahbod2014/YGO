@@ -7,6 +7,8 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
+import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -24,25 +26,27 @@ import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.AttackData;
 import com.ygo.game.AttackSwordVisual;
+import com.ygo.game.Cannonball;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.Cell;
-import com.ygo.game.Explosion;
-import com.ygo.game.Messages.AttackMessage;
-import com.ygo.game.MultiCardCell;
-import com.ygo.game.TargetingCursor;
-import com.ygo.game.TextFlash;
 import com.ygo.game.DelayedEvents;
+import com.ygo.game.Explosion;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
+import com.ygo.game.Messages.AttackInitiationMessage;
+import com.ygo.game.Messages.AttackMessage;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
+import com.ygo.game.MultiCardCell;
 import com.ygo.game.ServerListener;
+import com.ygo.game.TargetingCursor;
 import com.ygo.game.Tests.Tests;
+import com.ygo.game.TextFlash;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.Phase;
@@ -73,6 +77,7 @@ public class PlayState extends GameState implements InputProcessor {
 
     public OrthographicCamera camera;
     SpriteBatch batch;
+    DecalBatch decalBatch;
     public Field field;
     Hand[] hands = new Hand[2];
     TextFlash phaseChangeTextFlash, damageTextFlash;
@@ -87,6 +92,7 @@ public class PlayState extends GameState implements InputProcessor {
     Array<TextButton> phaseButtons = new Array<TextButton>();
     Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
     Array<Explosion> explosions = new Array<Explosion>();
+    Cannonball cannonball;
     Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<Integer, AttackSwordVisual>();
     Card currentlySelectedCard;
     Cell currentlySelectedCell;
@@ -137,6 +143,8 @@ public class PlayState extends GameState implements InputProcessor {
         batch.setProjectionMatrix(camera.combined);
 
         field = new Field(this, 0.291f, 0.5f, playerId);
+
+        decalBatch = new DecalBatch(new CameraGroupStrategy(Field.perspectiveCamera));
 
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"), new TextureAtlas("ui/uiskin.atlas"));
         stage = new Stage(new StretchViewport(YGO.GAME_WIDTH, YGO.GAME_HEIGHT, camera));
@@ -330,12 +338,21 @@ public class PlayState extends GameState implements InputProcessor {
         stage.act(dt);
         phaseChangeTextFlash.update(dt);
         damageTextFlash.update(dt);
+        if (cannonball != null) {
+            cannonball.update(dt);
+            if (cannonball.done) {
+                if (cannonball.initiatedBy == playerId) {
+                    sendAttackMessage(cannonball.attacker, cannonball.target);
+                }
+                cannonball = null;
+            }
+        }
     }
 
     @Override
     public void render() {
         field.renderGrid();
-        field.renderCards(playerId);
+        field.renderCards(playerId, null);
         batch.begin();
         field.renderStats(playerId, batch);
         hands[0].draw(batch, playerId);
@@ -350,6 +367,12 @@ public class PlayState extends GameState implements InputProcessor {
             asv.render(batch);
         }
         batch.end();
+        if (cannonball != null) {
+            cannonball.render(decalBatch);
+        }
+        Utils.prepareViewport();
+        decalBatch.flush();
+        Utils.revertViewport();
 
         stage.draw();
         phaseChangeTextFlash.render();
@@ -535,6 +558,7 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(PhaseChangeMessage.class);
         k.register(NextPlayersTurnMessage.class);
         k.register(AttackMessage.class);
+        k.register(AttackInitiationMessage.class);
     }
 
     private void drawCard(PlayerType player) {
@@ -694,6 +718,10 @@ public class PlayState extends GameState implements InputProcessor {
         phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f / 3f, 2f / 3f);
     }
 
+    public void handleAttackInitiationMessage(AttackInitiationMessage m) {
+        cannonball = new Cannonball(field, m);
+    }
+
     public void handleAttackMessage(AttackMessage m) {
         final PlayerType conducting = PlayerType.valueOf(m.player);
         Cell[] zone = field.getZone(ZoneType.MONSTER, conducting.getOpponent());
@@ -737,20 +765,28 @@ public class PlayState extends GameState implements InputProcessor {
         }
     }
 
-    public void confirmTarget(Cell cell) {
+    /**
+     * Where the attack is confirmed, send an attack message
+     * @param target
+     */
+    public void confirmTarget(Cell target) {
         if (intent == Intent.NONE) {
             return;
         }
 
         //TODO: NEED TO INDICATE THE CELL THAT WE ARE ATTACKING FROM
         if (intent == Intent.ATTACKING) {
-            client.sendTCP(new AttackMessage(playerId, cell.index, currentlySelectedCard.id));
+            client.sendTCP(new AttackInitiationMessage(playerId, currentlySelectedCell.index, target.index));
             clearAllTargeting();
             currentlySelectedCard.attacksThisTurn++;
             if (!currentlySelectedCard.canAttack()) {
                 attackSwordVisuals.remove(currentlySelectedCell.index);
             }
         }
+    }
+
+    public void sendAttackMessage(Cell attacker, Cell target) {
+        client.sendTCP(new AttackMessage(playerId, target.index, currentlySelectedCard.id));
     }
 
     private void clearAllTargeting() {

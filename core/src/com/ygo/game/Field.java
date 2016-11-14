@@ -153,6 +153,17 @@ public class Field {
         return CELLS_IN_ROW * CELL_WIDTH;
     }
 
+    public Cell getCellByIndex(ZoneType zone, int index) {
+        for (PlayerType p : PlayerType.values()) {
+            for (Cell c : getZone(zone, p)) {
+                if (c.index == index) {
+                    return c;
+                }
+            }
+        }
+        return null;
+    }
+
     public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         int firstAvailable = getEmptyCell(zone);
@@ -194,7 +205,7 @@ public class Field {
     }
 
     public void renderGrid() {
-        prepareViewport();
+        Utils.prepareViewport();
         sr.begin(ShapeRenderer.ShapeType.Line);
 //        sr.setColor(Color.RED);
 //        sr.box(-5 + xoff, 0, 5, 10, 0, 10);
@@ -209,15 +220,15 @@ public class Field {
             }
         }
         sr.end();
-        revertViewport();
+        Utils.revertViewport();
     }
 
     /**
      * Render the cards on the field from the perspective of <code>playerId</code>
      * @param playerId
      */
-    public void renderCards(PlayerType playerId) {
-        prepareViewport();
+    public void renderCards(PlayerType playerId, DecalBatch decalBatch2) {
+        Utils.prepareViewport();
         for (PlayerType p : PlayerType.values()) {
             for (ZoneType z : ZoneType.values()) {
                 for (int i = 0; i < cells[p.index][z.index].length; i++) {
@@ -228,7 +239,7 @@ public class Field {
             }
         }
         decalBatch.flush();
-        revertViewport();
+        Utils.revertViewport();
     }
 
     /**
@@ -236,7 +247,7 @@ public class Field {
      * @param playerId
      */
     public void renderStats(PlayerType playerId, SpriteBatch batch) {
-        prepareViewport();
+        Utils.prepareViewport();
         for (PlayerType p : PlayerType.values()) {
             for (Cell c : getZone(MONSTER, p)) {
                 c.drawStats(batch, playerId, perspectiveCamera);
@@ -244,28 +255,10 @@ public class Field {
                 YGO.cardStatsFont.draw(batch, "" + c.index, pos.x, pos.y);
             }
         }
-        revertViewport();
+        Utils.revertViewport();
     }
 
-    private void prepareViewport() {
-        int x = getViewportX();
-        int y = getViewportY();
-        int w = Gdx.graphics.getWidth();
-        int h = Gdx.graphics.getHeight();
-        HdpiUtils.glViewport(x, y, w, h);
-    }
 
-    private void revertViewport() {
-        HdpiUtils.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-    }
-
-    public static int getViewportX() {
-        return (int) (Gdx.graphics.getWidth() * 0.104f);
-    }
-
-    public static int getViewportY() {
-        return (int) (Gdx.graphics.getHeight() * 0.037f);
-    }
 
     public Card removeCard(PlayerType player, ZoneType where, int which) {
         Cell[] zone = getZone(where, player);

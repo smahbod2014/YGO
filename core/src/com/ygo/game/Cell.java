@@ -104,7 +104,7 @@ public class Cell {
 
         //TODO use the one in Utils
         Vector3 screenPos = new Vector3(position.x + size.x / 2, 0, position.y);
-        camera.project(screenPos, Field.getViewportX(), Field.getViewportY(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.project(screenPos, Utils.getViewportX(), Utils.getViewportY(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float scaleX = (float) YGO.GAME_WIDTH / Gdx.graphics.getWidth();
         float scaleY = (float) YGO.GAME_HEIGHT / Gdx.graphics.getHeight();
         screenPos.x *= scaleX;

@@ -12,6 +12,10 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.StateManager;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static com.ygo.game.Types.CardType.effectMonster;
 import static com.ygo.game.Types.CardType.equipSpell;
 import static com.ygo.game.Types.CardType.normalMonster;
@@ -67,6 +71,7 @@ public class YGO extends ApplicationAdapter {
         TargetingCursor.cursor = new Texture("targeting_cursor.png");
         Explosion.spritesheet = new Texture("explosion_spritesheet.png");
         AttackSwordVisual.sword = new Texture("attack_sword.png");
+        Cannonball.cannonball = new Texture("attack_sword.png");
 
         StateManager.pushState(new MenuState());
     }

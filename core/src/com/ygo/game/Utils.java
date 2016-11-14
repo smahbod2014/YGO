@@ -2,6 +2,7 @@ package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -50,7 +51,7 @@ public class Utils {
 
     public static Vector2 worldPerspectiveToScreen(float x, float z, Camera camera) {
         Vector3 screenPos = new Vector3(x, 0, z);
-        camera.project(screenPos, Field.getViewportX(), Field.getViewportY(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.project(screenPos, getViewportX(), getViewportY(), Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float scaleX = (float) YGO.GAME_WIDTH / Gdx.graphics.getWidth();
         float scaleY = (float) YGO.GAME_HEIGHT / Gdx.graphics.getHeight();
         screenPos.x *= scaleX;
@@ -66,5 +67,25 @@ public class Utils {
             }
         }
         return result;
+    }
+
+    public static void prepareViewport() {
+        int x = getViewportX();
+        int y = getViewportY();
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
+        HdpiUtils.glViewport(x, y, w, h);
+    }
+
+    public static void revertViewport() {
+        HdpiUtils.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    public static int getViewportX() {
+        return (int) (Gdx.graphics.getWidth() * 0.104f);
+    }
+
+    public static int getViewportY() {
+        return (int) (Gdx.graphics.getHeight() * 0.037f);
     }
 }
