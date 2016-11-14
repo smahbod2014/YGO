@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -34,6 +35,7 @@ import com.ygo.game.DelayedEvents;
 import com.ygo.game.Explosion;
 import com.ygo.game.Field;
 import com.ygo.game.Hand;
+import com.ygo.game.Lifepoints;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.AttackMessage;
 import com.ygo.game.Messages.DrawMessage;
@@ -48,6 +50,7 @@ import com.ygo.game.TargetingCursor;
 import com.ygo.game.Tests.Tests;
 import com.ygo.game.TextFlash;
 import com.ygo.game.Types.CardPlayMode;
+import com.ygo.game.Types.DamageType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.Phase;
 import com.ygo.game.Types.PlayerType;
@@ -77,6 +80,7 @@ public class PlayState extends GameState implements InputProcessor {
 
     public OrthographicCamera camera;
     SpriteBatch batch;
+    ShapeRenderer shapeRenderer;
     DecalBatch decalBatch;
     public Field field;
     Hand[] hands = new Hand[2];
@@ -92,6 +96,7 @@ public class PlayState extends GameState implements InputProcessor {
     Array<TextButton> phaseButtons = new Array<TextButton>();
     Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
     Array<Explosion> explosions = new Array<Explosion>();
+    Map<PlayerType, Lifepoints> lifepointBars = new HashMap<>();
     Cannonball cannonball;
     Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<Integer, AttackSwordVisual>();
     Card currentlySelectedCard;
@@ -141,6 +146,9 @@ public class PlayState extends GameState implements InputProcessor {
         camera = new OrthographicCamera();
         camera.setToOrtho(false, YGO.GAME_WIDTH, YGO.GAME_HEIGHT);
         batch.setProjectionMatrix(camera.combined);
+        shapeRenderer = new ShapeRenderer();
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.setAutoShapeType(true);
 
         field = new Field(this, 0.291f, 0.5f, playerId);
 
@@ -170,6 +178,9 @@ public class PlayState extends GameState implements InputProcessor {
         damageTextFlash = new TextFlash(camera);
         damageTextFlash.setPosition(camera.viewportWidth / 2 + 20, 75);
         damageTextFlash.setColor(1, 0, 0, 1);
+
+        lifepointBars.put(playerId, new Lifepoints(425, 670, 300, 35, 8000, playerId.toString()));
+        lifepointBars.put(playerId.getOpponent(), new Lifepoints(825, 670, 300, 40, 8000, playerId.getOpponent().toString()));
     }
 
     private void initCardMenus() {
@@ -367,6 +378,7 @@ public class PlayState extends GameState implements InputProcessor {
             asv.render(batch);
         }
         batch.end();
+        lifepointBars.values().forEach(x -> x.render(batch, shapeRenderer));
         if (cannonball != null) {
             cannonball.render(decalBatch);
         }
@@ -716,6 +728,13 @@ public class PlayState extends GameState implements InputProcessor {
     public void handleNextPlayersTurnMessage(NextPlayersTurnMessage m) {
         turnPlayer = PlayerType.valueOf(m.player);
         phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f / 3f, 2f / 3f);
+        if (playerId == turnPlayer) {
+            for (Cell c : field.getZone(ZoneType.MONSTER, playerId)) {
+                if (c.hasCard()) {
+                    c.card.attacksThisTurn = 0;
+                }
+            }
+        }
     }
 
     public void handleAttackInitiationMessage(AttackInitiationMessage m) {
@@ -732,6 +751,7 @@ public class PlayState extends GameState implements InputProcessor {
         final Cell cell = zone[index];
         explosions.add(new Explosion(cell));
         damageTextFlash.flash("-" + CardManager.get(m.cardId).atk, 1f / 3, 2f / 3);
+        inflictDamage(conducting.getOpponent(), DamageType.BATTLE, CardManager.get(m.cardId).atk);
         AttackData.attackTakingPlace = true;
         AttackData.attacker = conducting;
 //        AttackData.cellOrigin =
@@ -747,6 +767,15 @@ public class PlayState extends GameState implements InputProcessor {
                 cell.card = null;
             }
         }, 1);
+    }
+
+    private void inflictDamage(PlayerType target, DamageType damageType, int amount) {
+        lifepointBars.get(target).currentLifePoints = Math.max(0, lifepointBars.get(target).currentLifePoints - amount);
+        //deal with damageType as the need arises
+
+        if (lifepointBars.get(target).currentLifePoints == 0) {
+            YGO.info(target.getOpponent().toString() + " wins!");
+        }
     }
 
     public void displayAttackTargets() {

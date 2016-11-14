@@ -53,7 +53,7 @@ public class Hand {
             advance = cardSize.x + gap - gap * 0.1f * (cards.size - 5);
         }
 
-        float y = fromPerspective == player ? 50f : 600;
+        float y = fromPerspective == player ? 50f : 550;
 
         float width = advance * (cards.size - 1) + Field.CARD_WIDTH_IN_CELL;
         float x = centerX - width / 2;

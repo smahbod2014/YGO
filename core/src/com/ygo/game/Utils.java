@@ -2,6 +2,8 @@ package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -9,6 +11,8 @@ import com.badlogic.gdx.utils.Array;
 
 
 public class Utils {
+
+    private static final GlyphLayout glyphLayout = new GlyphLayout();
 
     public static float width() {
         return Gdx.graphics.getWidth();
@@ -87,5 +91,10 @@ public class Utils {
 
     public static int getViewportY() {
         return (int) (Gdx.graphics.getHeight() * 0.037f);
+    }
+
+    public static Vector2 getFontDimensions(BitmapFont font, String text) {
+        glyphLayout.setText(font, text);
+        return new Vector2(glyphLayout.width, glyphLayout.height);
     }
 }

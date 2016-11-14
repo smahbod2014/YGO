@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.g3d.decals.Decal;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
-import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;

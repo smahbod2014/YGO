@@ -153,17 +153,6 @@ public class Field {
         return CELLS_IN_ROW * CELL_WIDTH;
     }
 
-    public Cell getCellByIndex(ZoneType zone, int index) {
-        for (PlayerType p : PlayerType.values()) {
-            for (Cell c : getZone(zone, p)) {
-                if (c.index == index) {
-                    return c;
-                }
-            }
-        }
-        return null;
-    }
-
     public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         int firstAvailable = getEmptyCell(zone);
