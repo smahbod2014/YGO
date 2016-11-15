@@ -10,6 +10,7 @@ import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
+import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 
@@ -52,6 +53,9 @@ public class ClientListener extends Listener {
                 }
                 else if (m instanceof AttackInitiationMessage) {
                     playState.handleAttackInitiationMessage((AttackInitiationMessage) m);
+                }
+                else if (m instanceof RetaliatoryDamageMessage) {
+                    playState.handleRetaliatoryDamageMessage((RetaliatoryDamageMessage) m);
                 }
             }
         });

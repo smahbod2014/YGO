@@ -42,6 +42,7 @@ import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
+import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 import com.ygo.game.MultiCardCell;
@@ -571,6 +572,7 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(NextPlayersTurnMessage.class);
         k.register(AttackMessage.class);
         k.register(AttackInitiationMessage.class);
+        k.register(RetaliatoryDamageMessage.class);
     }
 
     private void drawCard(PlayerType player) {
@@ -729,6 +731,7 @@ public class PlayState extends GameState implements InputProcessor {
         turnPlayer = PlayerType.valueOf(m.player);
         phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f / 3f, 2f / 3f);
         if (playerId == turnPlayer) {
+            normalSummonsThisTurn = 0;
             for (Cell c : field.getZone(ZoneType.MONSTER, playerId)) {
                 if (c.hasCard()) {
                     c.card.attacksThisTurn = 0;
@@ -741,6 +744,10 @@ public class PlayState extends GameState implements InputProcessor {
         cannonball = new Cannonball(field, m);
     }
 
+    /**
+     * Received by the person getting attacked
+     * @param m
+     */
     public void handleAttackMessage(AttackMessage m) {
         final PlayerType conducting = PlayerType.valueOf(m.player);
         Cell[] zone = field.getZone(ZoneType.MONSTER, conducting.getOpponent());
@@ -748,29 +755,85 @@ public class PlayState extends GameState implements InputProcessor {
         if (conducting == playerId) {
             intent = Intent.NONE;
         }
-        final Cell cell = zone[index];
-        explosions.add(new Explosion(cell));
-        damageTextFlash.flash("-" + CardManager.get(m.cardId).atk, 1f / 3, 2f / 3);
-        inflictDamage(conducting.getOpponent(), DamageType.BATTLE, CardManager.get(m.cardId).atk);
-        AttackData.attackTakingPlace = true;
-        AttackData.attacker = conducting;
-//        AttackData.cellOrigin =
-        DelayedEvents.schedule(new Runnable() {
-            @Override
-            public void run() {
-                Card card = cell.card;
-                card.location = Location.GRAVEYARD;
-                card.playMode = CardPlayMode.FACE_UP;
-                Cell[] graveyard = field.getZone(ZoneType.GRAVEYARD, conducting.getOpponent());
-                MultiCardCell mc = (MultiCardCell) graveyard[0];
-                mc.cards.add(cell.card);
-                cell.card = null;
+        final Cell defendingCell = zone[index];
+        final Cell attackingCell = field.getCellByIndex(conducting, ZoneType.MONSTER, m.sourceCell);
+        int incomingAtkPower = attackingCell.card.atk;
+        // Check if our monster is in defense mode
+        if (CardPlayMode.isDefenseMode(defendingCell.card)) {
+            int defensePower = defendingCell.card.def;
+            if (CardPlayMode.isFaceDown(defendingCell.card.playMode)) {
+                //TODO: Apply flip effects here
+                CardPlayMode.setFaceUp(defendingCell.card);
             }
-        }, 1);
+
+            if (incomingAtkPower > defensePower) {
+                destroyCardWithAnimation(defendingCell, conducting.getOpponent(), 1);
+                //TODO: This is where piercing damage would apply
+            }
+            else if (incomingAtkPower < defensePower) {
+                inflictRetaliatoryDamage(conducting, attackingCell, defendingCell, defensePower - incomingAtkPower);
+            }
+        }
+        else {
+            int defenderAtkPower = defendingCell.card.atk;
+            if (incomingAtkPower >= defenderAtkPower) {
+                int damageDifference = incomingAtkPower - defenderAtkPower;
+                if (damageDifference > 0) {
+                    inflictDamage(conducting.getOpponent(), DamageType.BATTLE, damageDifference);
+                }
+                destroyCardWithAnimation(defendingCell, conducting.getOpponent(), 1);
+                if (incomingAtkPower == defenderAtkPower) {
+                    inflictRetaliatoryDamage(conducting, attackingCell, defendingCell, 0);
+                }
+            }
+            else {
+                inflictRetaliatoryDamage(conducting, attackingCell, defendingCell, defenderAtkPower - incomingAtkPower);
+            }
+        }
+
+
+//        AttackData.attackTakingPlace = true;
+//        AttackData.attacker = conducting;
+//        AttackData.cellOrigin =
+
+    }
+
+    public void handleRetaliatoryDamageMessage(RetaliatoryDamageMessage m) {
+        PlayerType attacker = PlayerType.valueOf(m.victimPlayer);
+        PlayerType defender = attacker.getOpponent();
+        Cell attackingCell = field.getCellByIndex(attacker, ZoneType.MONSTER, m.attackingCellIndex);
+        Cell defendingCell = field.getCellByIndex(defender, ZoneType.MONSTER, m.defendingCellIndex);
+        inflictDamage(attacker, DamageType.BATTLE, m.damage);
+
+        if (CardPlayMode.isAttackMode(attackingCell.card.playMode) && CardPlayMode.isAttackMode(defendingCell.card.playMode)) {
+            YGO.debug("Retaliatory damage message");
+            destroyCardWithAnimation(attackingCell, attacker, 1);
+        }
+    }
+
+    private void inflictRetaliatoryDamage(PlayerType victim, Cell attackingCell, Cell defendingCell, int damage) {
+//        client.sendTCP(new RetaliatoryDamageMessage(victim, attackingCell, defendingCell, damage));
+        handleRetaliatoryDamageMessage(new RetaliatoryDamageMessage(victim, attackingCell, defendingCell, damage));
+    }
+
+    private void destroyCardWithAnimation(Cell cell, PlayerType owner, float delay) {
+        explosions.add(new Explosion(cell));
+        DelayedEvents.schedule(() -> {
+            Card card = cell.card;
+            card.location = Location.GRAVEYARD;
+            card.playMode = CardPlayMode.FACE_UP;
+            Cell[] graveyard = field.getZone(ZoneType.GRAVEYARD, owner);
+            MultiCardCell mc = (MultiCardCell) graveyard[0];
+            mc.cards.add(cell.card);
+            cell.card = null;
+        }, delay);
     }
 
     private void inflictDamage(PlayerType target, DamageType damageType, int amount) {
         lifepointBars.get(target).currentLifePoints = Math.max(0, lifepointBars.get(target).currentLifePoints - amount);
+        if (amount > 0) {
+            damageTextFlash.flash("-" + amount, 1f / 3, 2f / 3);
+        }
         //deal with damageType as the need arises
 
         if (lifepointBars.get(target).currentLifePoints == 0) {
@@ -815,7 +878,7 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void sendAttackMessage(Cell attacker, Cell target) {
-        client.sendTCP(new AttackMessage(playerId, target.index, currentlySelectedCard.id));
+        client.sendTCP(new AttackMessage(playerId, attacker, target));
     }
 
     private void clearAllTargeting() {

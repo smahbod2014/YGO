@@ -96,6 +96,9 @@ public class Card {
 //            decal.setRotation(new Quaternion(Vector3.X, -90));
             decal.setRotationX(-90);
             which = decal;
+            if (CardPlayMode.isDefenseMode(this)) {
+                decal.setRotation(new Quaternion(Vector3.Y, 90).mul(decal.getRotation()));
+            }
         }
         which.setPosition(x + width / 2, y, z - height / 2);
         if (opponentsCard) {

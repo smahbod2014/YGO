@@ -12,6 +12,7 @@ import com.ygo.game.Messages.AttackMessage;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
 import com.ygo.game.Messages.PhaseChangeMessage;
+import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 import com.ygo.game.Types.Phase;
@@ -82,6 +83,9 @@ public class ServerListener extends Listener {
             server.sendToAllTCP(m);
         }
         else if (m instanceof AttackInitiationMessage) {
+            server.sendToAllTCP(m);
+        }
+        else if (m instanceof RetaliatoryDamageMessage) {
             server.sendToAllTCP(m);
         }
     }
