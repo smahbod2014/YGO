@@ -13,6 +13,8 @@ import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
+import com.ygo.game.Messages.TestMessage;
+import com.ygo.game.Types.PlayerType;
 
 public class ClientListener extends Listener {
 
@@ -24,7 +26,7 @@ public class ClientListener extends Listener {
 
     @Override
     public void received(Connection connection, final Object m) {
-        if (m instanceof FrameworkMessage.Ping)
+        if (m instanceof FrameworkMessage.KeepAlive)
             return;
 
         Gdx.app.postRunnable(new Runnable() {

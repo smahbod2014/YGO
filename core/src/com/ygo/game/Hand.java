@@ -84,6 +84,9 @@ public class Hand {
         boolean cardWasClicked = false;
         for (Card card : cards) {
             if (card.location == Location.HAND && card.contains(mousePos, playerId != player)) {
+                if (!card.isHovering) {
+                    YGO.debug(card.id + ": " + card.uniqueId);
+                }
                 card.isHovering = true;
                 //detect click
                 if (playState.clicked()) {

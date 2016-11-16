@@ -22,6 +22,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.Server;
@@ -45,7 +46,9 @@ import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
+import com.ygo.game.Messages.TestMessage;
 import com.ygo.game.MultiCardCell;
+import com.ygo.game.Pair;
 import com.ygo.game.ServerListener;
 import com.ygo.game.TargetingCursor;
 import com.ygo.game.Tests.Tests;
@@ -64,8 +67,12 @@ import com.ygo.game.listeners.AttackButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.ygo.game.YGO.debug;
 import static com.ygo.game.YGO.info;
@@ -75,7 +82,7 @@ import static com.ygo.game.YGO.info;
  */
 public class PlayState extends GameState implements InputProcessor {
 
-    private int maximumNormalSummons = 1;
+    private int maximumNormalSummons = 5;
 
     private enum Intent {NONE, ATTACKING}
 
@@ -132,6 +139,8 @@ public class PlayState extends GameState implements InputProcessor {
         }
         client.addListener(new ClientListener(this));
         registerMessages(client);
+
+        YGO.debug(playerId + "'s client ID is " + client.getID());
 
         initCommon();
         initGame();
@@ -200,8 +209,6 @@ public class PlayState extends GameState implements InputProcessor {
 
         buttonTable.setVisible(false);
 
-        stage.addActor(buttonTable);
-
         phaseTable = new Table();
 
         btnDrawPhase = new TextButton("DP", skin);
@@ -225,6 +232,9 @@ public class PlayState extends GameState implements InputProcessor {
         phaseTable.add(btnEndPhase).width(buttonWidth).padRight(15);
 
         stage.addActor(phaseTable);
+
+        // have the attack buttons drawn on top of the phase butons
+        stage.addActor(buttonTable);
     }
 
     private void setupPhaseButtonListener(TextButton button, final Phase newPhase) {
@@ -245,22 +255,25 @@ public class PlayState extends GameState implements InputProcessor {
         if (!isServer)
             return;
 
-        Array<String> p1Deck = new Array<String>();
-        Array<String> p2Deck = new Array<String>();
+        List<Card> p1Deck = new ArrayList<>();
+        List<Card> p2Deck = new ArrayList<>();
 
         CardManager.clearDuplicatesHistory();
         for (int i = 0; i < 10; i++) {
-            p1Deck.add(CardManager.getRandomNoDuplicates().id);
-            if (i < 3)
-                debug("Added " + p1Deck.peek() + "to P1 deck");
+            Card card = CardManager.getRandomNoDuplicates().copy();
+            p1Deck.add(card);
         }
 
         CardManager.clearDuplicatesHistory();
         for (int i = 0; i < 15; i++) {
-            p2Deck.add(CardManager.getRandomNoDuplicates().id);
-            if (i < 3)
-                debug("Added " + p2Deck.peek() + "to P2 deck");
+            Card card = CardManager.getRandomNoDuplicates().copy();
+            p2Deck.add(card);
         }
+
+        p1Deck.add(CardManager.get("yugi/6368038").copy());
+        p1Deck.add(CardManager.get("yugi/6368038").copy());
+        p2Deck.add(CardManager.get("yugi/6368038").copy());
+        p2Deck.add(CardManager.get("yugi/6368038").copy());
 
         server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
 
@@ -296,6 +309,14 @@ public class PlayState extends GameState implements InputProcessor {
 
     @Override
     public void update(float dt) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            client.sendTCP(new TestMessage(playerId.toString() + " sends TestMessage!"));
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+            YGO.debug("Sending fake draw message for " + playerId.toString() + " on thread " + Thread.currentThread().getName());
+            client.sendTCP(new DrawMessage(playerId));
+//            server.sendToAllTCP(new DrawMessage(playerId));
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
             phaseChangeTextFlash.flash("Draw Phase", 0.33f, 0.67f);
             debug("Flashing message");
@@ -483,7 +504,7 @@ public class PlayState extends GameState implements InputProcessor {
             performSummon(SummonType.SET, CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE);
         }
         else {
-            SpellTrapSetMessage m = new SpellTrapSetMessage(playerId.index, Location.HAND.index, currentlySelectedCard.id);
+            SpellTrapSetMessage m = new SpellTrapSetMessage(playerId.index, Location.HAND.index, currentlySelectedCard.uniqueId);
             client.sendTCP(m);
         }
     }
@@ -496,7 +517,7 @@ public class PlayState extends GameState implements InputProcessor {
 //        field.placeCardOnField(currentlySelectedCard, ZoneType.MONSTER, turnPlayer, cardPlayMode, Location.FIELD);
 
         //TODO: pass location as parameter
-        SummonMessage m = new SummonMessage(playerId.index, Location.HAND.index, currentlySelectedCard.id, summonType.index, cardPlayMode);
+        SummonMessage m = new SummonMessage(playerId.index, Location.HAND.index, currentlySelectedCard.uniqueId, summonType.index, cardPlayMode);
         client.sendTCP(m);
     }
 
@@ -573,12 +594,15 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(AttackMessage.class);
         k.register(AttackInitiationMessage.class);
         k.register(RetaliatoryDamageMessage.class);
+        k.register(UUID.class, new JavaSerializer());
+        k.register(TestMessage.class);
+        k.register(Pair.class);
+        k.register(ArrayList.class);
     }
 
     private void drawCard(PlayerType player) {
         Card card = field.removeCard(player, ZoneType.DECK, Field.TOP_CARD);
         hands[player.index].addCard(card, playerId);
-        debug(player.toString() + " drew " + card.id);
     }
 
     private void setPhaseButtonVisibleButOthersNot(TextButton button) {
@@ -610,16 +634,21 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void handleGameInitializationMessage(GameInitializationMessage m) {
-        Array<Card> p1Deck = new Array<Card>();
-        Array<Card> p2Deck = new Array<Card>();
+        List<Card> p1Deck, p2Deck;
 
-        for (String id : m.p1Deck) {
-            p1Deck.add(CardManager.get(id).copy());
-        }
+        p1Deck = m.p1Deck.stream().map(pair -> {
+            Card card = CardManager.get(pair.second).copy();
+            card.uniqueId = pair.first;
+            CardManager.submitCardForPlay(card);
+            return card;
+        }).collect(Collectors.toList());
 
-        for (String id : m.p2Deck) {
-            p2Deck.add(CardManager.get(id).copy());
-        }
+        p2Deck = m.p2Deck.stream().map(pair -> {
+            Card card = CardManager.get(pair.second).copy();
+            card.uniqueId = pair.first;
+            CardManager.submitCardForPlay(card);
+            return card;
+        }).collect(Collectors.toList());
 
         field.placeCardsInZone(p1Deck, ZoneType.DECK, PlayerType.PLAYER_1, CardPlayMode.FACE_DOWN, Location.DECK);
         field.placeCardsInZone(p2Deck, ZoneType.DECK, PlayerType.PLAYER_2, CardPlayMode.FACE_DOWN, Location.DECK);
@@ -636,16 +665,19 @@ public class PlayState extends GameState implements InputProcessor {
         field.placeCardOnField(CardManager.get("88819587").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.createFaceUpAttackMode(), Location.FIELD);
         field.placeCardOnField(CardManager.get("yugi/15025844").copy(), ZoneType.MONSTER, PlayerType.PLAYER_2, CardPlayMode.createFaceUpAttackMode(), Location.FIELD);
 
+        //redundant
         turnPlayer = PlayerType.PLAYER_1;
     }
 
     public void handleDrawMessage(DrawMessage m) {
+        YGO.debug(PlayerType.valueOf(m.player) + " draws a card");
         drawCard(PlayerType.valueOf(m.player));
     }
 
     public void handleSummonMessage(SummonMessage m) {
         PlayerType player = PlayerType.indexToPlayer(m.player);
-        Card card = CardManager.get(m.cardId);
+        Card card = CardManager.getUnique(m.cardId);
+        YGO.debug("Summong card id " + m.cardId + " for " + player);
         if (Location.indexToLocation(m.location) == Location.HAND) {
             Hand hand = hands[player.index];
             hand.removeCard(card, playerId);
@@ -655,7 +687,7 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void handleSpellTrapSetMessage(SpellTrapSetMessage m) {
         PlayerType player = PlayerType.indexToPlayer(m.player);
-        Card card = CardManager.get(m.cardId);
+        Card card = CardManager.getUnique(m.cardId);
         if (Location.indexToLocation(m.location) == Location.HAND) {
             Hand hand = hands[player.index];
             hand.removeCard(card, playerId);
@@ -664,13 +696,14 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void handlePhaseChangeMessage(PhaseChangeMessage m) {
+        YGO.debug("Phase is now: " + m.newPhase);
         currentPhase = Phase.valueOf(m.newPhase);
         phaseChangeTextFlash.flash(currentPhase.toString(), 1f / 3f, 2f / 3f);
         if (playerId == turnPlayer) {
             if (currentPhase == Phase.DRAW_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnDrawPhase);
                 // draw
-                client.sendTCP(new DrawMessage(playerId));
+                DelayedEvents.schedule(() -> client.sendTCP(new DrawMessage(playerId)), 0.5f);
                 //TODO have to check if there are no events that occur during draw phase
                 advanceToPhase(Phase.STANDBY_PHASE, 1);
             }

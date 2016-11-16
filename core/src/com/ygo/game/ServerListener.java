@@ -3,6 +3,7 @@ package com.ygo.game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.Timer;
 import com.esotericsoftware.kryonet.Connection;
+import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import com.ygo.game.GameStates.MenuState;
@@ -15,6 +16,7 @@ import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
+import com.ygo.game.Messages.TestMessage;
 import com.ygo.game.Types.Phase;
 import com.ygo.game.Types.PlayerType;
 
@@ -39,6 +41,9 @@ public class ServerListener extends Listener {
 
     @Override
     public void received(Connection connection, Object m) {
+        if (m instanceof FrameworkMessage.KeepAlive)
+            return;
+
         if (m instanceof SummonMessage) {
             server.sendToAllTCP(m);
         }
@@ -49,7 +54,6 @@ public class ServerListener extends Listener {
             server.sendToAllTCP(m);
             PhaseChangeMessage p = (PhaseChangeMessage) m;
             if (Phase.valueOf(p.newPhase) == Phase.END_PHASE) {
-                debug("Server: End phase");
                 Gdx.app.postRunnable(new Runnable() {
                     @Override
                     public void run() {
@@ -69,12 +73,6 @@ public class ServerListener extends Listener {
 
                             }
                         }, 2);
-                        DelayedEvents.schedule(new Runnable() {
-                            @Override
-                            public void run() {
-                                server.sendToAllTCP(new DrawMessage(nextPlayer));
-                            }
-                        }, 2.5f);
                     }
                 });
             }
@@ -87,6 +85,12 @@ public class ServerListener extends Listener {
         }
         else if (m instanceof RetaliatoryDamageMessage) {
             server.sendToAllTCP(m);
+        }
+        else if (m instanceof DrawMessage) {
+            server.sendToAllTCP(m);
+        }
+        else if (m instanceof TestMessage) {
+            server.sendToTCP(connection.getID(), m);
         }
     }
 }

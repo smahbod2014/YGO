@@ -1,12 +1,14 @@
 package com.ygo.game.Messages;
 
+import java.util.UUID;
+
 public class SummonMessage {
     //who summoned the monster?
     public int player;
     //from where?
     public int location;
     //which card?
-    public String cardId;
+    public UUID cardId;
     //what kind of summon?
     public int summonType;
     //in what position?
@@ -16,7 +18,7 @@ public class SummonMessage {
 
     }
 
-    public SummonMessage(int player, int location, String cardId, int summonType, int cardPlayMode) {
+    public SummonMessage(int player, int location, UUID cardId, int summonType, int cardPlayMode) {
         this.player = player;
         this.location = location;
         this.cardId = cardId;

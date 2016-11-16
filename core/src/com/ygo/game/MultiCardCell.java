@@ -4,12 +4,15 @@ import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.utils.Array;
 import com.ygo.game.Types.PlayerType;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by semahbod on 10/8/16.
  */
 public class MultiCardCell extends Cell {
 
-    public Array<Card> cards = new Array<Card>();
+    public List<Card> cards = new ArrayList<>();
 
     public MultiCardCell(float x, float z, float width, float height, PlayerType owner) {
         super(x, z, width, height, owner);

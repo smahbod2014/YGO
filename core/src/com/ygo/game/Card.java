@@ -17,6 +17,8 @@ import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 
+import java.util.UUID;
+
 public class Card {
 
     public static final float THICKNESS = 0.0125f;
@@ -35,6 +37,7 @@ public class Card {
     public int def;
     public int level;
     public int attacksThisTurn = 0;
+    public UUID uniqueId;
 
     /**
      * @param filename The filename of the card's image without the path or extension
@@ -48,6 +51,7 @@ public class Card {
         this.atk = atk;
         this.def = def;
         this.level = level;
+        this.uniqueId = UUID.randomUUID();
     }
 
     public Card(String filename, int cardType) {
@@ -56,7 +60,7 @@ public class Card {
 
     @Override
     public boolean equals(Object obj) {
-        return this.id.equals(((Card) obj).id);
+        return this.uniqueId.equals(((Card) obj).uniqueId);
     }
 
     public void setLocation(Location location) {

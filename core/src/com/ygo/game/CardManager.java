@@ -4,14 +4,18 @@ import com.ygo.game.Types.CardType;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Created by semahbod on 10/8/16.
  */
 public class CardManager {
 
-    private static HashMap<String, Card> cards = new HashMap<String, Card>();
-    private static HashSet<Integer> chosenCards = new HashSet<Integer>();
+    private static Map<String, Card> cards = new HashMap<String, Card>();
+    private static Set<Integer> chosenCards = new HashSet<Integer>();
+    private static Map<UUID, Card> cardsInPlay = new HashMap<>();
 
     public static void add(String id, int cardType) {
         cards.put(id, new Card(id, cardType));
@@ -23,6 +27,13 @@ public class CardManager {
 
     public static Card get(String id) {
         return cards.get(id);
+    }
+    public static Card getUnique(UUID id) {
+        return cardsInPlay.get(id);
+    }
+
+    public static void submitCardForPlay(Card card) {
+        cardsInPlay.put(card.uniqueId, card);
     }
 
     public static Card getRandom() {

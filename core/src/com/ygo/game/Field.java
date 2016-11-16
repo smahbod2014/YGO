@@ -17,6 +17,8 @@ import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
 
 
+import java.util.List;
+
 import static com.ygo.game.Types.PlayerType.*;
 import static com.ygo.game.Types.ZoneType.*;
 
@@ -162,7 +164,7 @@ public class Field {
         //this is where we would fire "onSummon" events
     }
 
-    public void placeCardsInZone(Array<Card> cards, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
+    public void placeCardsInZone(List<Card> cards, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         MultiCardCell mc = (MultiCardCell) zone[0];
         mc.cards.addAll(cards);
@@ -253,9 +255,9 @@ public class Field {
         Cell[] zone = getZone(where, player);
         MultiCardCell mc = (MultiCardCell) zone[0];
         if (which == TOP_CARD) {
-            which = mc.cards.size - 1;
+            which = mc.cards.size() - 1;
         }
-        return mc.cards.removeIndex(which);
+        return mc.cards.remove(which);
     }
 
     public boolean highlightCells() {
