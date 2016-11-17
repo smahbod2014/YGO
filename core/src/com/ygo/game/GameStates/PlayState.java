@@ -39,6 +39,8 @@ import com.ygo.game.Hand;
 import com.ygo.game.Lifepoints;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.AttackMessage;
+import com.ygo.game.Messages.DirectAttackInitiationMessage;
+import com.ygo.game.Messages.DirectAttackMessage;
 import com.ygo.game.Messages.DrawMessage;
 import com.ygo.game.Messages.GameInitializationMessage;
 import com.ygo.game.Messages.NextPlayersTurnMessage;
@@ -92,7 +94,8 @@ public class PlayState extends GameState implements InputProcessor {
     DecalBatch decalBatch;
     public Field field;
     Hand[] hands = new Hand[2];
-    TextFlash phaseChangeTextFlash, damageTextFlash;
+    TextFlash phaseChangeTextFlash;
+    Map<PlayerType, TextFlash> damageTextFlashes;
 
     Vector2 mouseDown = new Vector2();
     boolean mouseClicked = false;
@@ -185,9 +188,15 @@ public class PlayState extends GameState implements InputProcessor {
 
         phaseChangeTextFlash = new TextFlash(camera);
         phaseChangeTextFlash.setPosition(camera.viewportWidth / 2 + 20, 75);
-        damageTextFlash = new TextFlash(camera);
-        damageTextFlash.setPosition(camera.viewportWidth / 2 + 20, 75);
-        damageTextFlash.setColor(1, 0, 0, 1);
+        damageTextFlashes = new HashMap<>();
+        TextFlash dtf1 = new TextFlash(camera);
+        dtf1.setPosition(camera.viewportWidth / 2 + 100, camera.viewportHeight / 2 - 500);
+        dtf1.setColor(1, 0, 0, 1);
+        damageTextFlashes.put(playerId, dtf1);
+        TextFlash dtf2 = new TextFlash(camera);
+        dtf2.setPosition(camera.viewportWidth / 2 + 100, camera.viewportHeight / 2 - 250);
+        dtf2.setColor(1, 0, 0, 1);
+        damageTextFlashes.put(playerId.getOpponent(), dtf2);
 
         lifepointBars.put(playerId, new Lifepoints(425, 670, 300, 35, 8000, playerId.toString()));
         lifepointBars.put(playerId.getOpponent(), new Lifepoints(825, 670, 300, 40, 8000, playerId.getOpponent().toString()));
@@ -370,12 +379,18 @@ public class PlayState extends GameState implements InputProcessor {
         }
         stage.act(dt);
         phaseChangeTextFlash.update(dt);
-        damageTextFlash.update(dt);
+        damageTextFlashes.values().forEach(dtf -> dtf.update(dt));
         if (cannonball != null) {
             cannonball.update(dt);
             if (cannonball.done) {
                 if (cannonball.initiatedBy == playerId) {
-                    sendAttackMessage(cannonball.attacker, cannonball.target);
+                    if (cannonball.target != null) {
+                        sendAttackMessage(cannonball.attacker, cannonball.target);
+                    }
+                    // direct attack
+                    else {
+                        sendDirectAttackMessage(cannonball.attacker);
+                    }
                 }
                 cannonball = null;
             }
@@ -401,6 +416,9 @@ public class PlayState extends GameState implements InputProcessor {
         }
         batch.end();
         lifepointBars.values().forEach(x -> x.render(batch, shapeRenderer));
+
+        stage.draw();
+
         if (cannonball != null) {
             cannonball.render(decalBatch);
         }
@@ -408,9 +426,8 @@ public class PlayState extends GameState implements InputProcessor {
         decalBatch.flush();
         Utils.revertViewport();
 
-        stage.draw();
         phaseChangeTextFlash.render();
-        damageTextFlash.render();
+        damageTextFlashes.values().forEach(TextFlash::render);
 
         //reset mouse click event
         mouseClicked = false;
@@ -563,6 +580,14 @@ public class PlayState extends GameState implements InputProcessor {
             mouseClicked = true;
             return true;
         }
+
+        if (button == Input.Buttons.RIGHT) {
+            if (intent == Intent.ATTACKING) {
+                targetingCursors.clear();
+            }
+
+            intent = Intent.NONE;
+        }
         return false;
     }
 
@@ -598,6 +623,8 @@ public class PlayState extends GameState implements InputProcessor {
         k.register(TestMessage.class);
         k.register(Pair.class);
         k.register(ArrayList.class);
+        k.register(DirectAttackMessage.class);
+        k.register(DirectAttackInitiationMessage.class);
     }
 
     private void drawCard(PlayerType player) {
@@ -844,6 +871,21 @@ public class PlayState extends GameState implements InputProcessor {
         }
     }
 
+    public void handleDirectAttackInitiationMessage(DirectAttackInitiationMessage m) {
+        cannonball = new Cannonball(field, m);
+    }
+
+    public void handleDirectAttackMessage(DirectAttackMessage m) {
+        final PlayerType conducting = PlayerType.valueOf(m.player);
+        if (conducting == playerId) {
+            intent = Intent.NONE;
+        }
+        final Cell attackingCell = field.getCellByIndex(conducting, ZoneType.MONSTER, m.sourceCell);
+        int incomingAtkPower = attackingCell.card.atk;
+
+        inflictDamage(conducting.getOpponent(), DamageType.BATTLE, incomingAtkPower);
+    }
+
     private void inflictRetaliatoryDamage(PlayerType victim, Cell attackingCell, Cell defendingCell, int damage) {
 //        client.sendTCP(new RetaliatoryDamageMessage(victim, attackingCell, defendingCell, damage));
         handleRetaliatoryDamageMessage(new RetaliatoryDamageMessage(victim, attackingCell, defendingCell, damage));
@@ -865,7 +907,7 @@ public class PlayState extends GameState implements InputProcessor {
     private void inflictDamage(PlayerType target, DamageType damageType, int amount) {
         lifepointBars.get(target).currentLifePoints = Math.max(0, lifepointBars.get(target).currentLifePoints - amount);
         if (amount > 0) {
-            damageTextFlash.flash("-" + amount, 1f / 3, 2f / 3);
+            damageTextFlashes.get(target).flash("-" + amount, 1f / 3, 2f / 3);
         }
         //deal with damageType as the need arises
 
@@ -875,12 +917,18 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void displayAttackTargets() {
+        // Direct attack
         if (!hasMonsters(playerId.getOpponent())) {
-            damageTextFlash.flash("-" + currentlySelectedCard.atk, 1f / 3, 2f / 3);
+//            damageTextFlashes.get(playerId.getOpponent()).flash("-" + currentlySelectedCard.atk, 1f / 3, 2f / 3);
+            client.sendTCP(new DirectAttackInitiationMessage(playerId, currentlySelectedCell.index));
             currentlySelectedCard.attacksThisTurn++;
+            if (!currentlySelectedCard.canAttack()) {
+                attackSwordVisuals.remove(currentlySelectedCell.index);
+            }
         }
         else {
             intent = Intent.ATTACKING;
+            targetingCursors.clear();
             for (Cell c : field.getZone(ZoneType.MONSTER, playerId.getOpponent())) {
                 if (c.hasCard()) {
                     targetingCursors.add(new TargetingCursor(c));
@@ -912,6 +960,10 @@ public class PlayState extends GameState implements InputProcessor {
 
     public void sendAttackMessage(Cell attacker, Cell target) {
         client.sendTCP(new AttackMessage(playerId, attacker, target));
+    }
+
+    public void sendDirectAttackMessage(Cell attacker) {
+        client.sendTCP(new DirectAttackMessage(playerId, attacker));
     }
 
     private void clearAllTargeting() {

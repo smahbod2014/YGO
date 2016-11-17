@@ -5,8 +5,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.decals.Decal;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.ygo.game.Messages.AttackInitiationMessage;
+import com.ygo.game.Messages.DirectAttackInitiationMessage;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
 
@@ -36,6 +38,31 @@ public class Cannonball {
 
     public Cannonball(Field field, AttackInitiationMessage m) {
         init(field, PlayerType.valueOf(m.attacker), m.attackerIndex, m.targetIndex);
+    }
+
+    public Cannonball(Field field, DirectAttackInitiationMessage m) {
+        init(field, PlayerType.valueOf(m.attacker), m.attackerIndex);
+    }
+
+    private void init(Field field, PlayerType initiatedBy, int originIndex) {
+        Cell origin = field.getCellByIndex(initiatedBy, ZoneType.MONSTER, originIndex);
+        originPos = new Vector3(origin.getCenter().x, 0.15f, origin.getCenter().y);
+
+        float enemyCellZ = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.MONSTER, 0).getCenter().y;
+        if (enemyCellZ < origin.getCenter().y) {
+            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.SPELL_TRAP, 2).getCenter().sub(0, origin.size.y);
+            destPos = new Vector3(target.x, 0.15f, target.y);
+        }
+        else {
+            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.SPELL_TRAP, 2).getCenter().add(0, origin.size.y);
+            destPos = new Vector3(target.x, 0.15f, target.y);
+        }
+
+        decal = Decal.newDecal(origin.size.x / 2, origin.size.y / 2, new TextureRegion(cannonball));
+        decal.setRotationX(-90);
+        decal.setPosition(origin.getCenter().x, .15f, origin.getCenter().y);
+        attacker = origin;
+        this.initiatedBy = initiatedBy;
     }
 
     private void init(Field field, PlayerType initiatedBy, int originIndex, int destinationIndex) {
