@@ -10,6 +10,7 @@ import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.AttackMessage;
+import com.ygo.game.Messages.CardActivationMessage;
 import com.ygo.game.Messages.DirectAttackInitiationMessage;
 import com.ygo.game.Messages.DirectAttackMessage;
 import com.ygo.game.Messages.DrawMessage;
@@ -95,6 +96,9 @@ public class ServerListener extends Listener {
             server.sendToAllTCP(m);
         }
         else if (m instanceof DirectAttackMessage) {
+            server.sendToAllTCP(m);
+        }
+        else if (m instanceof CardActivationMessage) {
             server.sendToAllTCP(m);
         }
         else if (m instanceof TestMessage) {

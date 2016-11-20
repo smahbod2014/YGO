@@ -13,6 +13,9 @@ public class TextFlash {
 
     private enum State { SOLID, FADING, DONE }
 
+    public static final Color DAMAGE = Color.RED;
+    public static final Color HEALING = Color.GREEN;
+
     Label label;
     Skin skin;
     Stage stage;
@@ -43,14 +46,18 @@ public class TextFlash {
         label.setColor(c);
     }
 
-    public void flash(String text, float solidDuration, float fadeDuration) {
+    public void flash(String text, Color color, float solidDuration, float fadeDuration) {
         label.setVisible(true);
         label.setText(text);
         solidTime = solidDuration;
         fadeTime = fadeDuration;
         elapsedTime = 0;
         state = State.SOLID;
-        label.setColor(1, 1, 1, 1);
+        label.setColor(color);
+    }
+
+    public void flash(String text, float solidDuration, float fadeDuration) {
+        flash(text, Color.WHITE, solidDuration, fadeDuration);
     }
 
     public void update(float dt) {
@@ -63,7 +70,7 @@ public class TextFlash {
         }
         else if (state == State.FADING && elapsedTime < fadeTime) {
             float alpha = 1 - elapsedTime / fadeTime;
-            label.setColor(1, 1, 1, alpha);
+            label.setColor(label.getColor().r, label.getColor().g, label.getColor().b, alpha);
             elapsedTime += dt;
             if (elapsedTime >= fadeTime) {
                 state = State.DONE;

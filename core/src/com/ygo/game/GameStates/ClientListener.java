@@ -6,6 +6,7 @@ import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.AttackMessage;
+import com.ygo.game.Messages.CardActivationMessage;
 import com.ygo.game.Messages.DirectAttackInitiationMessage;
 import com.ygo.game.Messages.DirectAttackMessage;
 import com.ygo.game.Messages.DrawMessage;
@@ -66,6 +67,9 @@ public class ClientListener extends Listener {
                 }
                 else if (m instanceof RetaliatoryDamageMessage) {
                     playState.handleRetaliatoryDamageMessage((RetaliatoryDamageMessage) m);
+                }
+                else if (m instanceof CardActivationMessage) {
+                    playState.handleCardActivationMessage((CardActivationMessage) m);
                 }
             }
         });

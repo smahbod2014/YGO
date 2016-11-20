@@ -21,6 +21,7 @@ import java.util.Random;
 /**
  * Created by semahbod on 10/8/16.
  */
+@Deprecated
 public class Tests {
 
     private static Random random = new Random();
@@ -59,7 +60,7 @@ public class Tests {
                             if (z == ZoneType.SPELL_TRAP && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN;
                             }
-                            field.placeCardOnField(CardManager.getRandom().copy(), z, p, playMode, Location.FIELD);
+//                            field.placeCardOnField(new Card(), z, p, playMode, Location.FIELD);
                             break;
                     }
                 }
@@ -70,9 +71,9 @@ public class Tests {
     private static void fillUpDeck(Cell c, int numCards, int mode) {
         MultiCardCell multiCardCell = (MultiCardCell) c;
         for (int i = 0; i < numCards; i++) {
-            Card card = CardManager.getRandom().copy();
-            card.playMode = mode;
-            multiCardCell.cards.add(card);
+//            Card card = CardManager.getRandom().copy();
+//            card.playMode = mode;
+//            multiCardCell.cards.add(card);
         }
     }
 }

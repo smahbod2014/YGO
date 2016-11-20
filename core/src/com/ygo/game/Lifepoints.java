@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.ygo.game.utils.Utils;
 
 public class Lifepoints {
 
@@ -21,7 +22,7 @@ public class Lifepoints {
     }
 
     public void render(SpriteBatch batch, ShapeRenderer shapeRenderer) {
-        float amountFilled = size.x * currentLifePoints / startingLifepoints;
+        float amountFilled = Math.min(size.x * currentLifePoints / startingLifepoints, size.x);
         //TODO: Do not call begin() and end() here
         shapeRenderer.begin();
         shapeRenderer.set(ShapeRenderer.ShapeType.Filled);

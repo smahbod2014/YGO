@@ -1,4 +1,4 @@
-package com.ygo.game;
+package com.ygo.game.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
@@ -8,6 +8,12 @@ import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.ygo.game.Card;
+import com.ygo.game.CardManager;
+import com.ygo.game.YGO;
+
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
 
 public class Utils {

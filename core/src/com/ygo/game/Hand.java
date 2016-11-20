@@ -6,6 +6,7 @@ import com.badlogic.gdx.utils.Array;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
+import com.ygo.game.utils.Utils;
 
 import static com.ygo.game.YGO.debug;
 
@@ -85,7 +86,7 @@ public class Hand {
         for (Card card : cards) {
             if (card.location == Location.HAND && card.contains(mousePos, playerId != player)) {
                 if (!card.isHovering) {
-                    YGO.debug(card.id + ": " + card.uniqueId);
+                    YGO.debug(card.getName() + ": " + card.getUniqueId());
                 }
                 card.isHovering = true;
                 //detect click

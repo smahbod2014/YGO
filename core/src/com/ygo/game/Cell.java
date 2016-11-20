@@ -10,8 +10,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.ygo.game.Types.PlayerType;
-
-import static com.ygo.game.YGO.debug;
+import com.ygo.game.utils.Utils;
 
 /**
  * Created by semahbod on 10/7/16.
@@ -110,6 +109,6 @@ public class Cell {
         screenPos.x *= scaleX;
         screenPos.y *= scaleY;
         screenPos.y -= 5;
-        YGO.cardStatsFont.draw(sb, card.atk + "/" + card.def, screenPos.x, screenPos.y);
+        YGO.cardStatsFont.draw(sb, card.getAtk() + "/" + card.getDef(), screenPos.x, screenPos.y);
     }
 }

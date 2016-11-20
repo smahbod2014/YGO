@@ -1,38 +1,77 @@
 package com.ygo.game.Types;
 
+import com.badlogic.gdx.Gdx;
 import com.ygo.game.Card;
+
+import java.util.Arrays;
 
 /**
  * Not a very well-chosen class name, but nonetheless describes the position the card is on the field
  */
 public class CardPlayMode {
+    public static final int NONE = 0;
     public static final int FACE_UP = 1;
     public static final int FACE_DOWN = 2;
     public static final int ATTACK_MODE = 4;
     public static final int DEFENSE_MODE = 8;
 
-    public static int createFaceUpAttackMode() {
-        return FACE_UP | ATTACK_MODE;
+    private int playMode;
+
+    public CardPlayMode(int... modes) {
+        this.playMode = Arrays.stream(modes).reduce(NONE, (a, b) -> a | b);
     }
 
+    public CardPlayMode(CardPlayMode mode) {
+        this.playMode = mode.playMode;
+    }
+
+    public static CardPlayMode createFaceUpAttackMode() {
+        return new CardPlayMode(FACE_UP | ATTACK_MODE);
+    }
+
+    public void changeMode(int mode) {
+        switch (mode) {
+            case FACE_UP:
+                playMode &= ~FACE_DOWN;
+                break;
+            case FACE_DOWN:
+                playMode &= ~FACE_UP;
+                break;
+            case ATTACK_MODE:
+                playMode &= ~DEFENSE_MODE;
+                break;
+            case DEFENSE_MODE:
+                playMode &= ~ATTACK_MODE;
+                break;
+            default:
+                Gdx.app.error(getClass().getSimpleName(), "Only set to one mode at a time");
+        }
+        playMode |= mode;
+    }
+
+    @Deprecated
     public static void setFaceUp(Card card) {
-        card.playMode &= ~FACE_DOWN;
-        card.playMode |= FACE_UP;
+//        card.playMode &= ~FACE_DOWN;
+//        card.playMode |= FACE_UP;
     }
 
-    public static boolean isFaceDown(int mode) {
-        return (mode & FACE_DOWN) != 0;
+    public boolean isFaceDown() {
+        return (playMode & FACE_DOWN) != 0;
     }
 
-    public static boolean isFaceDownDefense(int mode) {
-        return (mode & (FACE_DOWN | DEFENSE_MODE)) == (FACE_DOWN | DEFENSE_MODE);
+    public boolean isFaceDownDefense() {
+        return (playMode & (FACE_DOWN | DEFENSE_MODE)) == (FACE_DOWN | DEFENSE_MODE);
     }
 
-    public static boolean isAttackMode(int mode) {
-        return (mode & ATTACK_MODE) != 0;
+    public boolean isAttackMode() {
+        return (playMode & ATTACK_MODE) != 0;
     }
 
-    public static boolean isDefenseMode(Card card) {
-         return (card.playMode & DEFENSE_MODE) != 0;
+    public boolean isDefenseMode() {
+        return (playMode & DEFENSE_MODE) != 0;
+    }
+
+    public int getPlayMode() {
+        return playMode;
     }
 }

@@ -223,28 +223,7 @@ public class MenuState extends GameState {
         catch (IOException e) {
             e.printStackTrace();
         }
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    Utils.sleep(10);
-//                    lock.lock();
-//                    Utils.sleep(3000);
-//                    server.bind(27000);
-//                    cond.signal();
-//                }
-//                catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//                finally {
-//                    lock.unlock();
-//                }
-//            }
-//        }).start();
-//
-//        lock.lock();
-//        cond.awaitUninterruptibly();
-//        lock.unlock();
+
         return server;
     }
 
@@ -258,27 +237,7 @@ public class MenuState extends GameState {
             e.printStackTrace();
             return null;
         }
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    Utils.sleep(10);
-//                    lock.lock();
-//                    client.connect(3000, "localhost", YGOServer.PORT);
-//                    cond.signal();
-//                }
-//                catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//                finally {
-//                    lock.unlock();
-//                }
-//            }
-//        }).start();
-//
-//        lock.lock();
-//        cond.awaitUninterruptibly();
-//        lock.unlock();
+
         return client;
     }
 }

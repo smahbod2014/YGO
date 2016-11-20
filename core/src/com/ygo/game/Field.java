@@ -6,15 +6,16 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
-import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.Types.ZoneType;
+import com.ygo.game.utils.Utils;
 
 
 import java.util.List;
@@ -155,22 +156,22 @@ public class Field {
         return CELLS_IN_ROW * CELL_WIDTH;
     }
 
-    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
+    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, CardPlayMode cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         int firstAvailable = getEmptyCell(zone);
         zone[firstAvailable].card = card;
         card.location = location;
-        card.playMode = cardPlayMode;
+        card.overwritePlayMode(cardPlayMode);
         //this is where we would fire "onSummon" events
     }
 
-    public void placeCardsInZone(List<Card> cards, ZoneType destination, PlayerType playerSide, int cardPlayMode, Location location) {
+    public void placeCardsInZone(List<Card> cards, ZoneType destination, PlayerType playerSide, CardPlayMode cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         MultiCardCell mc = (MultiCardCell) zone[0];
         mc.cards.addAll(cards);
         for (Card card : cards) {
             card.location = location;
-            card.playMode = cardPlayMode;
+            card.overwritePlayMode(cardPlayMode);
         }
     }
 

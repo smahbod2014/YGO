@@ -1,74 +1,70 @@
 package com.ygo.game;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.decals.Decal;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
-import com.badlogic.gdx.math.Affine2;
-import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.ygo.game.Types.Attribute;
+import com.ygo.game.Types.CardFlavor;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Race;
+import com.ygo.game.db.CardDefinition;
 
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+
+import java.util.Arrays;
 import java.util.UUID;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Card {
 
     public static final float THICKNESS = 0.0125f;
     public static TextureRegion FACE_DOWN_CARD_TEXTURE;
     public int maximumNumberOfAttacks = 1;
+    private int maximumNumberOfBattlePositionChanges = 1;
 
     public Texture image;
     public Decal decal, faceDown;
     public boolean isHovering;
-    public int playMode;
-    public String id;
     public Location location = Location.HAND;
     public Vector2 positionInHand = new Vector2();
-    public int cardType;
-    public int atk;
-    public int def;
-    public int level;
     public int attacksThisTurn = 0;
-    public UUID uniqueId;
+    private int battlePoisitionChangesThisTurn = 0;
+    private CardPlayMode playMode;
+    private UUID uniqueId;
+    private CardDefinition definition;
 
-    /**
-     * @param filename The filename of the card's image without the path or extension
-     */
-    public Card(String filename, int cardType, int atk, int def, int level) {
-        image = new Texture("cards/" + filename + ".jpg");
+    public Card(CardDefinition def, UUID uniqueId) {
+        checkNotNull(def);
+        image = CardManager.getOrLoadTexture(def.getSerial());
         decal = Decal.newDecal(new TextureRegion(image), true);
         faceDown = Decal.newDecal(FACE_DOWN_CARD_TEXTURE, true);
-        id = filename;
-        this.cardType = cardType;
-        this.atk = atk;
-        this.def = def;
-        this.level = level;
-        this.uniqueId = UUID.randomUUID();
+        this.definition = def;
+        this.uniqueId = uniqueId;
+        this.playMode = new CardPlayMode(CardPlayMode.NONE);
     }
 
-    public Card(String filename, int cardType) {
-        this(filename, cardType, 0, 0, 0);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return this.uniqueId.equals(((Card) obj).uniqueId);
+    @Deprecated
+    public Card(CardDefinition def) {
+        this(def, UUID.randomUUID());
     }
 
     public void setLocation(Location location) {
         this.location = location;
     }
 
+    @Deprecated
     public Card copy() {
-        return new Card(id, cardType, atk, def, level);
+        return new Card(definition, UUID.randomUUID());
     }
 
     public boolean contains(Vector2 p, boolean opponentsCard) {
@@ -87,11 +83,11 @@ public class Card {
 
     public void drawOnField(DecalBatch db, float x, float y, float z, float width, float height, boolean opponentsCard) {
         Decal which;
-        if (CardPlayMode.isFaceDown(playMode)) {
+        if (playMode.isFaceDown()) {
             //TODO: Will need additional logic here to determine if monster or spell trap, since spell trap are vertical
 //            faceDown.setRotation(new Quaternion(Vector3.X, -90).mulLeft(new Quaternion(Vector3.Y, 90)));
             faceDown.setRotationX(-90);
-            if (CardPlayMode.isFaceDownDefense(playMode)) {
+            if (playMode.isDefenseMode()) {
                 faceDown.setRotation(new Quaternion(Vector3.Y, 90).mul(faceDown.getRotation()));
             }
             which = faceDown;
@@ -100,7 +96,7 @@ public class Card {
 //            decal.setRotation(new Quaternion(Vector3.X, -90));
             decal.setRotationX(-90);
             which = decal;
-            if (CardPlayMode.isDefenseMode(this)) {
+            if (playMode.isDefenseMode()) {
                 decal.setRotation(new Quaternion(Vector3.Y, 90).mul(decal.getRotation()));
             }
         }
@@ -127,19 +123,86 @@ public class Card {
         }
     }
 
-    public boolean isMonster() {
-        return (cardType & CardType.MONSTER) != 0;
+    public void onEffectActivation(PlayerType activator) {
+        CardManager.getGlobals().get("c" + getSerial()).get("onEffectActivation").call(CoerceJavaToLua.coerce(activator.name()));
     }
 
-    public boolean isSpell() {
-        return (cardType & CardType.SPELL) != 0;
+    @Override
+    public int hashCode() {
+        return getSerial().hashCode();
     }
 
-    public boolean isTrap() {
-        return (cardType & CardType.TRAP) != 0;
+    @Override
+    public boolean equals(Object o) {
+        return getSerial().equals(((Card) o).getSerial());
+    }
+
+    public UUID getUniqueId() {
+        return uniqueId;
     }
 
     public boolean canAttack() {
-        return CardPlayMode.isAttackMode(playMode) && attacksThisTurn < maximumNumberOfAttacks;
+        return playMode.isAttackMode() && attacksThisTurn < maximumNumberOfAttacks;
+    }
+
+    public boolean canChangeBattlePosition() {
+        return battlePoisitionChangesThisTurn < maximumNumberOfBattlePositionChanges;
+    }
+
+    /** Pass in modes, one per element */
+    public void setPlayMode(int... positions) {
+        Arrays.stream(positions).forEach(playMode::changeMode);
+    }
+
+    public void overwritePlayMode(CardPlayMode mode) {
+        this.playMode = mode;
+    }
+
+    public CardPlayMode getPlayMode() {
+        return playMode;
+    }
+
+    public CardType getType() {
+        return definition.getType();
+    }
+
+    public Attribute getAttribute() {
+        return definition.getAttribute();
+    }
+
+    public Race getRace() {
+        return definition.getRace();
+    }
+
+    public int getAtk() {
+        return definition.getAtk();
+    }
+
+    public int getDef() {
+        return definition.getDef();
+    }
+
+    public int getLevel() {
+        return definition.getLevel();
+    }
+
+    public String getName() {
+        return definition.getName();
+    }
+
+    public String getSerial() {
+        return definition.getSerial();
+    }
+
+    public boolean isNormal() {
+        return definition.getFlavors().contains(CardFlavor.Normal);
+    }
+
+    public boolean isEffect() {
+        return definition.getFlavors().contains(CardFlavor.Effect);
+    }
+
+    public boolean isEquip() {
+        return definition.getFlavors().contains(CardFlavor.Equip);
     }
 }
