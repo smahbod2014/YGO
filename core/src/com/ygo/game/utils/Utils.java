@@ -103,4 +103,8 @@ public class Utils {
         glyphLayout.setText(font, text);
         return new Vector2(glyphLayout.width, glyphLayout.height);
     }
+
+    public static Vector2 lerpVector2(Vector2 start, Vector2 end, float t) {
+        return start.cpy().scl(1 - t).add(end.cpy().scl(t));
+    }
 }

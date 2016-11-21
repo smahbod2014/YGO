@@ -12,6 +12,8 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.ygo.game.Types.PlayerType;
 import com.ygo.game.utils.Utils;
 
+import java.util.Objects;
+
 /**
  * Created by semahbod on 10/7/16.
  */
@@ -25,6 +27,8 @@ public class Cell {
     public int index;
     public boolean isHighlighted = false;
     public boolean targetingCursorOn;
+    public boolean isAnimating;
+    public Vector3 animationPosition = new Vector3();
 
     public Cell(float x, float z, float width, float height, PlayerType owner) {
         this(x, z, width, height, owner, 0);
@@ -91,9 +95,16 @@ public class Cell {
             return;
         }
 
-        float x = position.x + (size.x - cardSize.x) / 2;
-        float z = position.y - (size.y - cardSize.y) / 2;
-        card.drawOnField(db, x, z, cardSize.x, cardSize.y, player != owner);
+        if (isAnimating) {
+            float x = animationPosition.x + (size.x - cardSize.x) / 2;
+            float z = animationPosition.y - (size.y - cardSize.y) / 2;
+            card.drawOnField(db, x, z, cardSize.x, cardSize.y, player != owner);
+        }
+        else {
+            float x = position.x + (size.x - cardSize.x) / 2;
+            float z = position.y - (size.y - cardSize.y) / 2;
+            card.drawOnField(db, x, z, cardSize.x, cardSize.y, player != owner);
+        }
     }
 
     public void drawStats(SpriteBatch sb, PlayerType player, PerspectiveCamera camera) {
@@ -110,5 +121,16 @@ public class Cell {
         screenPos.y *= scaleY;
         screenPos.y -= 5;
         YGO.cardStatsFont.draw(sb, card.getAtk() + "/" + card.getDef(), screenPos.x, screenPos.y);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        Cell c = (Cell) obj;
+        return index == c.index && owner == c.owner;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index, owner);
     }
 }

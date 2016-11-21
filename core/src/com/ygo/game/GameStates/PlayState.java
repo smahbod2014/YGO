@@ -894,6 +894,10 @@ public class PlayState extends GameState implements InputProcessor {
         hand.removeCard(card, playerId);
         field.placeCardOnField(card, ZoneType.SPELL_TRAP, activator, new CardPlayMode(CardPlayMode.FACE_UP), Location.FIELD);
         card.onEffectActivation(activator);
+
+        DelayedEvents.schedule(() -> {
+
+        }, 1f);
     }
 
     private void inflictRetaliatoryDamage(PlayerType victim, Cell attackingCell, Cell defendingCell, int damage) {
