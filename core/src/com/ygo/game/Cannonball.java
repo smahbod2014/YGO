@@ -9,8 +9,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.DirectAttackInitiationMessage;
-import com.ygo.game.Types.PlayerType;
-import com.ygo.game.Types.ZoneType;
+import com.ygo.game.Types.Player;
+import com.ygo.game.Types.Zone;
 
 public class Cannonball {
 
@@ -22,10 +22,10 @@ public class Cannonball {
     private Vector3 originPos, destPos;
     public Cell attacker, target;
     public boolean done = false;
-    public PlayerType initiatedBy;
+    public Player initiatedBy;
 
     @Deprecated
-    public Cannonball(PlayerType initiatedBy, Cell origin, Cell destination) {
+    public Cannonball(Player initiatedBy, Cell origin, Cell destination) {
         originPos = new Vector3(origin.getCenter().x, 0.15f, origin.getCenter().y);
         destPos = new Vector3(destination.getCenter().x, 0.15f, destination.getCenter().y);
         decal = Decal.newDecal(origin.size.x / 2, origin.size.y / 2, new TextureRegion(cannonball));
@@ -37,24 +37,24 @@ public class Cannonball {
     }
 
     public Cannonball(Field field, AttackInitiationMessage m) {
-        init(field, PlayerType.valueOf(m.attacker), m.attackerIndex, m.targetIndex);
+        init(field, Player.valueOf(m.attacker), m.attackerIndex, m.targetIndex);
     }
 
     public Cannonball(Field field, DirectAttackInitiationMessage m) {
-        init(field, PlayerType.valueOf(m.attacker), m.attackerIndex);
+        init(field, Player.valueOf(m.attacker), m.attackerIndex);
     }
 
-    private void init(Field field, PlayerType initiatedBy, int originIndex) {
-        Cell origin = field.getCellByIndex(initiatedBy, ZoneType.MONSTER, originIndex);
+    private void init(Field field, Player initiatedBy, int originIndex) {
+        Cell origin = field.getCellByIndex(initiatedBy, Zone.MONSTER, originIndex);
         originPos = new Vector3(origin.getCenter().x, 0.15f, origin.getCenter().y);
 
-        float enemyCellZ = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.MONSTER, 0).getCenter().y;
+        float enemyCellZ = field.getCellByIndex(initiatedBy.getOpponent(), Zone.MONSTER, 0).getCenter().y;
         if (enemyCellZ < origin.getCenter().y) {
-            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.SPELL_TRAP, 2).getCenter().sub(0, origin.size.y);
+            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), Zone.SPELL_TRAP, 2).getCenter().sub(0, origin.size.y);
             destPos = new Vector3(target.x, 0.15f, target.y);
         }
         else {
-            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.SPELL_TRAP, 2).getCenter().add(0, origin.size.y);
+            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), Zone.SPELL_TRAP, 2).getCenter().add(0, origin.size.y);
             destPos = new Vector3(target.x, 0.15f, target.y);
         }
 
@@ -65,9 +65,9 @@ public class Cannonball {
         this.initiatedBy = initiatedBy;
     }
 
-    private void init(Field field, PlayerType initiatedBy, int originIndex, int destinationIndex) {
-        Cell origin = field.getCellByIndex(initiatedBy, ZoneType.MONSTER, originIndex);
-        Cell destination = field.getCellByIndex(initiatedBy.getOpponent(), ZoneType.MONSTER, destinationIndex);
+    private void init(Field field, Player initiatedBy, int originIndex, int destinationIndex) {
+        Cell origin = field.getCellByIndex(initiatedBy, Zone.MONSTER, originIndex);
+        Cell destination = field.getCellByIndex(initiatedBy.getOpponent(), Zone.MONSTER, destinationIndex);
         originPos = new Vector3(origin.getCenter().x, 0.15f, origin.getCenter().y);
         destPos = new Vector3(destination.getCenter().x, 0.15f, destination.getCenter().y);
         decal = Decal.newDecal(origin.size.x / 2, origin.size.y / 2, new TextureRegion(cannonball));

@@ -1,5 +1,6 @@
 package com.ygo.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -14,10 +15,11 @@ import com.ygo.game.Types.CardFlavor;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 import com.ygo.game.Types.Race;
 import com.ygo.game.db.CardDefinition;
 
+import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.util.Arrays;
@@ -38,12 +40,19 @@ public class Card {
     public Location location = Location.HAND;
     public Vector2 positionInHand = new Vector2();
     public int attacksThisTurn = 0;
-    private int battlePoisitionChangesThisTurn = 0;
+    public boolean normalSummonedThisTurn;
+    /** Who is the original owner of the card */
+    public Player owner;
+    /** Who currently has the card in their position (i.e. Change of Heart) */
+    public Player controller;
+    private Vector3 animationPosition = new Vector3();
+    private boolean isBeingAnimated;
+    private int battlePositionChangesThisTurn = 0;
     private CardPlayMode playMode;
     private UUID uniqueId;
     private CardDefinition definition;
 
-    public Card(CardDefinition def, UUID uniqueId) {
+    public Card(CardDefinition def, UUID uniqueId, Player owner) {
         checkNotNull(def);
         image = CardManager.getOrLoadTexture(def.getSerial());
         decal = Decal.newDecal(new TextureRegion(image), true);
@@ -51,11 +60,12 @@ public class Card {
         this.definition = def;
         this.uniqueId = uniqueId;
         this.playMode = new CardPlayMode(CardPlayMode.NONE);
+        this.owner = this.controller = owner;
     }
 
     @Deprecated
-    public Card(CardDefinition def) {
-        this(def, UUID.randomUUID());
+    public Card(CardDefinition def, Player owner) {
+        this(def, UUID.randomUUID(), owner);
     }
 
     public void setLocation(Location location) {
@@ -64,7 +74,7 @@ public class Card {
 
     @Deprecated
     public Card copy() {
-        return new Card(definition, UUID.randomUUID());
+        return new Card(definition, UUID.randomUUID(), owner);
     }
 
     public boolean contains(Vector2 p, boolean opponentsCard) {
@@ -123,8 +133,15 @@ public class Card {
         }
     }
 
-    public void onEffectActivation(PlayerType activator) {
-        CardManager.getGlobals().get("c" + getSerial()).get("onEffectActivation").call(CoerceJavaToLua.coerce(activator.name()));
+    public void onEffectActivation(Player activator) {
+        LuaValue function = CardManager.getGlobals().get("c" + getSerial()).get("onEffectActivation");
+        if (!function.isnil() && function.isfunction()) {
+            Gdx.app.log("Card", "Card effect activated for " + getName() + " under " + activator.toString());
+            function.call(CoerceJavaToLua.coerce(activator.name()));
+        }
+        else {
+            Gdx.app.log("Card", "No effect to be activated for " + getName());
+        }
     }
 
     @Override
@@ -146,7 +163,7 @@ public class Card {
     }
 
     public boolean canChangeBattlePosition() {
-        return battlePoisitionChangesThisTurn < maximumNumberOfBattlePositionChanges;
+        return !normalSummonedThisTurn && battlePositionChangesThisTurn < maximumNumberOfBattlePositionChanges;
     }
 
     /** Pass in modes, one per element */
@@ -156,6 +173,19 @@ public class Card {
 
     public void overwritePlayMode(CardPlayMode mode) {
         this.playMode = mode;
+    }
+
+    /** Call this when the player changes the card's battle position */
+    public void markBattlePositionChanged() {
+        battlePositionChangesThisTurn++;
+    }
+
+    public void setBeingAnimated(boolean isBeingAnimated) {
+        this.isBeingAnimated = isBeingAnimated;
+    }
+
+    public void setAnimationPosition(Vector3 animationPosition) {
+        this.animationPosition = animationPosition;
     }
 
     public CardPlayMode getPlayMode() {
@@ -194,6 +224,14 @@ public class Card {
         return definition.getSerial();
     }
 
+    public boolean isBeingAnimated() {
+        return isBeingAnimated;
+    }
+
+    public Vector3 getAnimationPosition() {
+        return animationPosition;
+    }
+
     public boolean isNormal() {
         return definition.getFlavors().contains(CardFlavor.Normal);
     }
@@ -204,5 +242,9 @@ public class Card {
 
     public boolean isEquip() {
         return definition.getFlavors().contains(CardFlavor.Equip);
+    }
+
+    public boolean isFieldSpell() {
+        return definition.getFlavors().contains(CardFlavor.FieldSpell);
     }
 }

@@ -1,16 +1,14 @@
 package com.ygo.game;
 
-import com.badlogic.gdx.Gdx;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.DamageType;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 import com.ygo.game.utils.TriConsumer;
 
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -28,29 +26,29 @@ public class LuaFunctions {
     }
 
     public static class InflictDamage extends ThreeArgFunction {
-        TriConsumer<PlayerType, DamageType, Integer> function;
+        TriConsumer<Player, DamageType, Integer> function;
 
-        public InflictDamage(TriConsumer<PlayerType, DamageType, Integer> function) {
+        public InflictDamage(TriConsumer<Player, DamageType, Integer> function) {
             this.function = function;
         }
 
         @Override
         public LuaValue call(LuaValue target, LuaValue damageType, LuaValue amount) {
-            function.accept(PlayerType.valueOf(target.tojstring()), DamageType.valueOf(damageType.tojstring()), amount.toint());
+            function.accept(Player.valueOf(target.tojstring()), DamageType.valueOf(damageType.tojstring()), amount.toint());
             return NIL;
         }
     }
 
     public static class IncreaseLifepoints extends TwoArgFunction {
-        BiConsumer<PlayerType, Integer> function;
+        BiConsumer<Player, Integer> function;
 
-        public IncreaseLifepoints(BiConsumer<PlayerType, Integer> function) {
+        public IncreaseLifepoints(BiConsumer<Player, Integer> function) {
             this.function = function;
         }
 
         @Override
         public LuaValue call(LuaValue target, LuaValue amount) {
-            function.accept(PlayerType.valueOf(target.tojstring()), amount.toint());
+            function.accept(Player.valueOf(target.tojstring()), amount.toint());
             return NIL;
         }
     }

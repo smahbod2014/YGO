@@ -8,12 +8,15 @@ import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.sun.tools.javac.util.List;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.YGO;
 
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceLuaToJava;
+
+import java.util.function.BiFunction;
 
 
 public class Utils {
@@ -105,6 +108,10 @@ public class Utils {
     }
 
     public static Vector2 lerpVector2(Vector2 start, Vector2 end, float t) {
+        return start.cpy().scl(1 - t).add(end.cpy().scl(t));
+    }
+
+    public static Vector3 lerpVector3(Vector3 start, Vector3 end, float t) {
         return start.cpy().scl(1 - t).add(end.cpy().scl(t));
     }
 }

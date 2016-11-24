@@ -13,15 +13,15 @@ import com.badlogic.gdx.utils.Array;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.Location;
-import com.ygo.game.Types.PlayerType;
-import com.ygo.game.Types.ZoneType;
+import com.ygo.game.Types.Player;
+import com.ygo.game.Types.Zone;
 import com.ygo.game.utils.Utils;
 
 
 import java.util.List;
 
-import static com.ygo.game.Types.PlayerType.*;
-import static com.ygo.game.Types.ZoneType.*;
+import static com.ygo.game.Types.Player.*;
+import static com.ygo.game.Types.Zone.*;
 
 /**
  * Created by semahbod on 9/30/16.
@@ -38,7 +38,7 @@ public class Field {
 
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
-    public Cell[][][] cells = new Cell[2][ZoneType.values().length][];
+    public Cell[][][] cells = new Cell[2][Zone.values().length][];
     public Array<Cell> flatCells = new Array<Cell>();
     public static PerspectiveCamera perspectiveCamera;
     PlayState playState;
@@ -46,7 +46,7 @@ public class Field {
     //temp variables
     private Card tempCard;
 
-    public Field(PlayState playState, float centerX, float centerY, PlayerType playerId) {
+    public Field(PlayState playState, float centerX, float centerY, Player playerId) {
         sr = new ShapeRenderer();
         sr.setAutoShapeType(true);
         this.playState = playState;
@@ -63,9 +63,9 @@ public class Field {
         initCells(playerId);
     }
 
-    private void initCells(PlayerType playerId) {
-        for (PlayerType p : PlayerType.values()) {
-            for (ZoneType z : ZoneType.values()) {
+    private void initCells(Player playerId) {
+        for (Player p : Player.values()) {
+            for (Zone z : Zone.values()) {
                 int quantity;
                 switch (z) {
                     case MONSTER:
@@ -94,8 +94,8 @@ public class Field {
             player1 = 1;
             player2 = 0;
         }
-        PlayerType p1 = PlayerType.indexToPlayer(player1);
-        PlayerType p2 = PlayerType.indexToPlayer(player2);
+        Player p1 = Player.indexToPlayer(player1);
+        Player p2 = Player.indexToPlayer(player2);
         cells[player1][EXTRA_DECK.index][0] = new MultiCardCell(-5, 5, sideWidth, height, p1);
         cells[player1][PENDULUM.index][0] = new Cell(-5, 5 - height * 1 - padding * 1, sideWidth, height, p1);
         cells[player1][FIELD_SPELL.index][0] = new Cell(-5, 5 - height * 2 - padding * 2, sideWidth, height, p1);
@@ -143,8 +143,8 @@ public class Field {
             Utils.reverseArray(getZone(SPELL_TRAP, PLAYER_1));
         }
 
-        for (PlayerType p : PlayerType.values()) {
-            for (ZoneType z : ZoneType.values()) {
+        for (Player p : Player.values()) {
+            for (Zone z : Zone.values()) {
                 for (Cell c : getZone(z, p)) {
                     flatCells.add(c);
                 }
@@ -156,16 +156,18 @@ public class Field {
         return CELLS_IN_ROW * CELL_WIDTH;
     }
 
-    public void placeCardOnField(Card card, ZoneType destination, PlayerType playerSide, CardPlayMode cardPlayMode, Location location) {
+    /** Returns the cell the card was placed in */
+    public Cell placeCardOnField(Card card, Zone destination, Player playerSide, CardPlayMode cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         int firstAvailable = getEmptyCell(zone);
         zone[firstAvailable].card = card;
         card.location = location;
         card.overwritePlayMode(cardPlayMode);
+        return zone[firstAvailable];
         //this is where we would fire "onSummon" events
     }
 
-    public void placeCardsInZone(List<Card> cards, ZoneType destination, PlayerType playerSide, CardPlayMode cardPlayMode, Location location) {
+    public void placeCardsInZone(List<Card> cards, Zone destination, Player playerSide, CardPlayMode cardPlayMode, Location location) {
         Cell[] zone = getZone(destination, playerSide);
         MultiCardCell mc = (MultiCardCell) zone[0];
         mc.cards.addAll(cards);
@@ -192,7 +194,7 @@ public class Field {
         return -1;
     }
 
-    public Cell[] getZone(ZoneType zone, PlayerType player) {
+    public Cell[] getZone(Zone zone, Player player) {
         return cells[player.index][zone.index];
     }
 
@@ -202,8 +204,8 @@ public class Field {
 //        sr.setColor(Color.RED);
 //        sr.box(-5 + xoff, 0, 5, 10, 0, 10);
         sr.setColor(Color.WHITE);
-        for (PlayerType p : PlayerType.values()) {
-            for (ZoneType z : ZoneType.values()) {
+        for (Player p : Player.values()) {
+            for (Zone z : Zone.values()) {
                 for (int i = 0; i < cells[p.index][z.index].length; i++) {
                     if (cells[p.index][z.index][i] != null) {
                         cells[p.index][z.index][i].draw(sr);
@@ -219,10 +221,10 @@ public class Field {
      * Render the cards on the field from the perspective of <code>playerId</code>
      * @param playerId
      */
-    public void renderCards(PlayerType playerId, DecalBatch decalBatch2) {
+    public void renderCards(Player playerId, DecalBatch decalBatch2) {
         Utils.prepareViewport();
-        for (PlayerType p : PlayerType.values()) {
-            for (ZoneType z : ZoneType.values()) {
+        for (Player p : Player.values()) {
+            for (Zone z : Zone.values()) {
                 for (int i = 0; i < cells[p.index][z.index].length; i++) {
                     if (cells[p.index][z.index][i] != null) {
                         cells[p.index][z.index][i].drawCard(decalBatch, playerId);
@@ -238,9 +240,9 @@ public class Field {
      * Render the ATK and DEF of cards on the field from the perspective of <code>playerId</code>
      * @param playerId
      */
-    public void renderStats(PlayerType playerId, SpriteBatch batch) {
+    public void renderStats(Player playerId, SpriteBatch batch) {
         Utils.prepareViewport();
-        for (PlayerType p : PlayerType.values()) {
+        for (Player p : Player.values()) {
             for (Cell c : getZone(MONSTER, p)) {
                 c.drawStats(batch, playerId, perspectiveCamera);
                 Vector2 pos = Utils.worldPerspectiveToScreen(c.position.x + c.size.x / 2, c.position.y - c.size.y / 2, perspectiveCamera);
@@ -252,7 +254,7 @@ public class Field {
 
 
 
-    public Card removeCard(PlayerType player, ZoneType where, int which) {
+    public Card removeCard(Player player, Zone where, int which) {
         Cell[] zone = getZone(where, player);
         MultiCardCell mc = (MultiCardCell) zone[0];
         if (which == TOP_CARD) {
@@ -268,8 +270,8 @@ public class Field {
         int h = Gdx.graphics.getHeight();
         Ray ray = perspectiveCamera.getPickRay(Gdx.input.getX(), Gdx.input.getY(), x, y, w, h);
         boolean cardWasClicked = false;
-        for (PlayerType p : PlayerType.values()) {
-            for (ZoneType z : ZoneType.values()) {
+        for (Player p : Player.values()) {
+            for (Zone z : Zone.values()) {
                 for (Cell c : cells[p.index][z.index]) {
                     c.isHighlighted =  c.testRay(ray);
                     if (c.isHighlighted && c.hasCard() && playState.clicked()) {
@@ -299,7 +301,7 @@ public class Field {
         }
     }
 
-    public Cell getCellByIndex(PlayerType player, ZoneType zone, int index) {
+    public Cell getCellByIndex(Player player, Zone zone, int index) {
         Cell[] cells = getZone(zone, player);
         for (Cell c : cells) {
             if (c.index == index) {
@@ -309,11 +311,11 @@ public class Field {
         return null;
     }
 
-    public void drawDirectAttackLine(PlayerType attacker, int cellIndexOrigin) {
+    public void drawDirectAttackLine(Player attacker, int cellIndexOrigin) {
         drawAttackLine(attacker, cellIndexOrigin, -1);
     }
 
-    public void drawAttackLine(PlayerType attacker, int cellIndexOrigin, int cellIndexDestination) {
+    public void drawAttackLine(Player attacker, int cellIndexOrigin, int cellIndexDestination) {
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.RED);
         Vector2 origin = getCellByIndex(attacker, MONSTER, cellIndexOrigin).getCenter();

@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 import com.ygo.game.utils.Utils;
 
 import java.util.Objects;
@@ -23,18 +23,16 @@ public class Cell {
     public Vector2 position;
     public Vector2 size;
     public Card card; //What card is in this cell?
-    public PlayerType owner;
+    public Player owner;
     public int index;
     public boolean isHighlighted = false;
     public boolean targetingCursorOn;
-    public boolean isAnimating;
-    public Vector3 animationPosition = new Vector3();
 
-    public Cell(float x, float z, float width, float height, PlayerType owner) {
+    public Cell(float x, float z, float width, float height, Player owner) {
         this(x, z, width, height, owner, 0);
     }
 
-    public Cell(float x, float z, float width, float height, PlayerType owner, int index) {
+    public Cell(float x, float z, float width, float height, Player owner, int index) {
         position = new Vector2(x, z);
         size = new Vector2(width, height);
         this.owner = owner;
@@ -78,6 +76,16 @@ public class Cell {
         return card != null;
     }
 
+    public Vector2 getPaddedPosition2() {
+        return new Vector2(position.x + (size.x - cardSize.x) / 2,
+                position.y - (size.y - cardSize.y) / 2);
+    }
+
+    public Vector3 getPaddedPosition3() {
+        Vector2 vec2 = getPaddedPosition2();
+        return new Vector3(vec2.x, 0, vec2.y);
+    }
+
     public void draw(ShapeRenderer sr) {
         sr.set(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.WHITE);
@@ -90,15 +98,16 @@ public class Cell {
         }
     }
 
-    public void drawCard(DecalBatch db, PlayerType player) {
+    public void drawCard(DecalBatch db, Player player) {
         if (card == null) {
             return;
         }
 
-        if (isAnimating) {
-            float x = animationPosition.x + (size.x - cardSize.x) / 2;
-            float z = animationPosition.y - (size.y - cardSize.y) / 2;
-            card.drawOnField(db, x, z, cardSize.x, cardSize.y, player != owner);
+        if (card.isBeingAnimated()) {
+            float x = card.getAnimationPosition().x;
+            float y = card.getAnimationPosition().y;
+            float z = card.getAnimationPosition().z;
+            card.drawOnField(db, x, y, z, cardSize.x, cardSize.y, player != owner);
         }
         else {
             float x = position.x + (size.x - cardSize.x) / 2;
@@ -107,7 +116,7 @@ public class Cell {
         }
     }
 
-    public void drawStats(SpriteBatch sb, PlayerType player, PerspectiveCamera camera) {
+    public void drawStats(SpriteBatch sb, Player player, PerspectiveCamera camera) {
         if (card == null) {
             return;
         }

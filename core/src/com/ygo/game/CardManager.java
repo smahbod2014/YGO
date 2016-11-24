@@ -43,6 +43,10 @@ public class CardManager {
         return cardsInPlay.get(id);
     }
 
+    public static Card getUnique(String id) {
+        return getUnique(UUID.fromString(id));
+    }
+
     public static Set<Card> getUniqueCardsInPlay() {
         return cardsInPlay.values().stream().distinct().collect(Collectors.toSet());
     }

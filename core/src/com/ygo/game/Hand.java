@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.Location;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 import com.ygo.game.utils.Utils;
 
 import static com.ygo.game.YGO.debug;
@@ -21,27 +21,27 @@ public class Hand {
     private Array<Card> cards = new Array<Card>();
 
     private float centerX;
-    private PlayerType player;
+    private Player player;
     PlayState playState;
 
-    public Hand(PlayState state, float centerX, PlayerType player) {
+    public Hand(PlayState state, float centerX, Player player) {
         this.centerX = YGO.GAME_WIDTH * centerX;
         this.player = player;
         playState = state;
     }
 
-    public void addCard(Card card, PlayerType fromPerspective) {
+    public void addCard(Card card, Player fromPerspective) {
         cards.add(card);
         card.setLocation(Location.HAND);
         refreshCardPositions(fromPerspective);
     }
 
-    public void removeCard(Card card, PlayerType fromPerspective) {
+    public void removeCard(Card card, Player fromPerspective) {
         cards.removeValue(card, false);
         refreshCardPositions(fromPerspective);
     }
 
-    private void refreshCardPositions(PlayerType fromPerspective) {
+    private void refreshCardPositions(Player fromPerspective) {
         Vector2 cardSize = fromPerspective == player ? CARD_SIZE_IN_HAND_NEAR : CARD_SIZE_IN_HAND_FAR;
         float gap = fromPerspective == player ? CARD_GAP_NEAR : CARD_GAP_FAR;
 
@@ -69,7 +69,7 @@ public class Hand {
         return cards.get(position);
     }
 
-    public boolean handleInput(float dt, PlayerType playerId) {
+    public boolean handleInput(float dt, Player playerId) {
 //        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
 //            centerX--;
 //            refreshCardPositions();
@@ -108,7 +108,7 @@ public class Hand {
         return cardWasClicked;
     }
 
-    public void draw(SpriteBatch sb, PlayerType playerId) {
+    public void draw(SpriteBatch sb, Player playerId) {
         for (Card card : cards) {
             card.draw(sb, player != playerId);
         }

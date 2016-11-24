@@ -3,17 +3,14 @@ package com.ygo.game.Tests;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.utils.TimeUtils;
-import com.ygo.game.Card;
-import com.ygo.game.CardManager;
 import com.ygo.game.Cell;
 import com.ygo.game.Field;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.GameStates.StateManager;
 import com.ygo.game.MultiCardCell;
 import com.ygo.game.Types.CardPlayMode;
-import com.ygo.game.Types.Location;
-import com.ygo.game.Types.PlayerType;
-import com.ygo.game.Types.ZoneType;
+import com.ygo.game.Types.Player;
+import com.ygo.game.Types.Zone;
 import com.ygo.game.YGO;
 
 import java.util.Random;
@@ -36,8 +33,8 @@ public class Tests {
     }
 
     private static void testCardFitInCells(Field field) {
-        for (PlayerType p : PlayerType.values()) {
-            for (ZoneType z : ZoneType.values()) {
+        for (Player p : Player.values()) {
+            for (Zone z : Zone.values()) {
                 for (Cell c : field.getZone(z, p)) {
                     switch (z) {
                         case DECK:
@@ -54,10 +51,10 @@ public class Tests {
                             break;
                         default:
                             int playMode = CardPlayMode.FACE_UP;
-                            if (z == ZoneType.MONSTER && random.nextBoolean()) {
+                            if (z == Zone.MONSTER && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE;
                             }
-                            if (z == ZoneType.SPELL_TRAP && random.nextBoolean()) {
+                            if (z == Zone.SPELL_TRAP && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN;
                             }
 //                            field.placeCardOnField(new Card(), z, p, playMode, Location.FIELD);

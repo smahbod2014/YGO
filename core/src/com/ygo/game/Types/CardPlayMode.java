@@ -15,6 +15,8 @@ public class CardPlayMode {
     public static final int ATTACK_MODE = 4;
     public static final int DEFENSE_MODE = 8;
 
+    public static final CardPlayMode FACE_UP_ATTACK = new CardPlayMode(FACE_UP | ATTACK_MODE);
+
     private int playMode;
 
     public CardPlayMode(int... modes) {
@@ -23,10 +25,6 @@ public class CardPlayMode {
 
     public CardPlayMode(CardPlayMode mode) {
         this.playMode = mode.playMode;
-    }
-
-    public static CardPlayMode createFaceUpAttackMode() {
-        return new CardPlayMode(FACE_UP | ATTACK_MODE);
     }
 
     public void changeMode(int mode) {
@@ -73,5 +71,14 @@ public class CardPlayMode {
 
     public int getPlayMode() {
         return playMode;
+    }
+
+    public CardPlayMode getOpposite() {
+        if (isAttackMode()) {
+            return new CardPlayMode(FACE_UP | DEFENSE_MODE);
+        }
+        else {
+            return new CardPlayMode(FACE_UP | ATTACK_MODE);
+        }
     }
 }

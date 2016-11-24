@@ -1,7 +1,7 @@
 package com.ygo.game.Messages;
 
 import com.ygo.game.Cell;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 
 public class RetaliatoryDamageMessage {
     public String victimPlayer;
@@ -9,7 +9,7 @@ public class RetaliatoryDamageMessage {
     public int defendingCellIndex;
     public int damage;
 
-    public RetaliatoryDamageMessage(PlayerType victim, Cell attackingCell, Cell defendingCell, int damage) {
+    public RetaliatoryDamageMessage(Player victim, Cell attackingCell, Cell defendingCell, int damage) {
         this.victimPlayer = victim.name();
         this.attackingCellIndex = attackingCell.index;
         this.defendingCellIndex = defendingCell.index;

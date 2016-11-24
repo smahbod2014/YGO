@@ -1,7 +1,6 @@
 package com.ygo.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.Timer;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
@@ -10,6 +9,7 @@ import com.ygo.game.GameStates.MenuState;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.AttackMessage;
+import com.ygo.game.Messages.BattlePositionChangeMessage;
 import com.ygo.game.Messages.CardActivationMessage;
 import com.ygo.game.Messages.DirectAttackInitiationMessage;
 import com.ygo.game.Messages.DirectAttackMessage;
@@ -21,7 +21,7 @@ import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
 import com.ygo.game.Messages.TestMessage;
 import com.ygo.game.Types.Phase;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 
 import static com.ygo.game.YGO.debug;
 
@@ -60,7 +60,7 @@ public class ServerListener extends Listener {
                 Gdx.app.postRunnable(new Runnable() {
                     @Override
                     public void run() {
-                        final PlayerType nextPlayer = playState.turnPlayer.getOpponent();
+                        final Player nextPlayer = playState.turnPlayer.getOpponent();
                         DelayedEvents.schedule(new Runnable() {
                             @Override
                             public void run() {
@@ -99,6 +99,9 @@ public class ServerListener extends Listener {
             server.sendToAllTCP(m);
         }
         else if (m instanceof CardActivationMessage) {
+            server.sendToAllTCP(m);
+        }
+        else if (m instanceof BattlePositionChangeMessage) {
             server.sendToAllTCP(m);
         }
         else if (m instanceof TestMessage) {

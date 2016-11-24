@@ -30,7 +30,7 @@ public class CardDefinition {
         this.attribute = attribute;
         this.race = race;
         this.type = type;
-        this.flavors = Arrays.stream(flavors.split("\\s*,\\s*")).map(CardFlavor::valueOf).collect(Collectors.toList());
+        this.flavors = Arrays.stream(flavors.split("\\s*,\\s*")).map(CardFlavor::toEnum).collect(Collectors.toList());
         this.text = text;
     }
 

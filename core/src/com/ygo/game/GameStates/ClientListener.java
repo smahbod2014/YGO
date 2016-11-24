@@ -6,6 +6,7 @@ import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
 import com.ygo.game.Messages.AttackInitiationMessage;
 import com.ygo.game.Messages.AttackMessage;
+import com.ygo.game.Messages.BattlePositionChangeMessage;
 import com.ygo.game.Messages.CardActivationMessage;
 import com.ygo.game.Messages.DirectAttackInitiationMessage;
 import com.ygo.game.Messages.DirectAttackMessage;
@@ -16,8 +17,6 @@ import com.ygo.game.Messages.PhaseChangeMessage;
 import com.ygo.game.Messages.RetaliatoryDamageMessage;
 import com.ygo.game.Messages.SpellTrapSetMessage;
 import com.ygo.game.Messages.SummonMessage;
-import com.ygo.game.Messages.TestMessage;
-import com.ygo.game.Types.PlayerType;
 
 public class ClientListener extends Listener {
 
@@ -70,6 +69,9 @@ public class ClientListener extends Listener {
                 }
                 else if (m instanceof CardActivationMessage) {
                     playState.handleCardActivationMessage((CardActivationMessage) m);
+                }
+                else if (m instanceof BattlePositionChangeMessage) {
+                    playState.handleBattlePositionChangeMessage((BattlePositionChangeMessage) m);
                 }
             }
         });

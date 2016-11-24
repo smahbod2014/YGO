@@ -1,7 +1,7 @@
 package com.ygo.game.Messages;
 
 import com.ygo.game.Cell;
-import com.ygo.game.Types.PlayerType;
+import com.ygo.game.Types.Player;
 
 public class DirectAttackMessage {
     /** who is conducting the attack? */
@@ -13,7 +13,7 @@ public class DirectAttackMessage {
 
     }
 
-    public DirectAttackMessage(PlayerType attacker, Cell attackingCell) {
+    public DirectAttackMessage(Player attacker, Cell attackingCell) {
         this.player = attacker.name();
         this.sourceCell = attackingCell.index;
     }
