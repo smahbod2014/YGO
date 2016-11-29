@@ -8,15 +8,14 @@ import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
-import com.sun.tools.javac.util.List;
 import com.ygo.game.Card;
 import com.ygo.game.CardManager;
 import com.ygo.game.YGO;
 
 import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.lib.jse.CoerceLuaToJava;
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
-import java.util.function.BiFunction;
+import java.util.Optional;
 
 
 public class Utils {
@@ -113,5 +112,19 @@ public class Utils {
 
     public static Vector3 lerpVector3(Vector3 start, Vector3 end, float t) {
         return start.cpy().scl(1 - t).add(end.cpy().scl(t));
+    }
+
+    public static Optional<LuaValue> getLuaFunction(Card card, String functionName) {
+        LuaValue table = CardManager.getGlobals().get("c" + card.getSerial());
+        if (!table.isnil()) {
+            LuaValue function = table.get(functionName);
+            if (!function.isnil() && function.isfunction()) {
+                return Optional.of(function);
+            }
+        }
+        else {
+            Gdx.app.log("Utils.getLuaFunction()", "No '" + functionName + "' function found for " + card.getName());
+        }
+        return Optional.empty();
     }
 }

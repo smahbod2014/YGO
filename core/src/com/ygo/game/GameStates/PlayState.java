@@ -94,6 +94,7 @@ import static com.ygo.game.YGO.info;
 public class PlayState extends GameState implements InputProcessor {
 
     private static final int MAXIMUM_NORMAL_SUMMONS = 1;
+    public static final float PHASE_CHANGE_DELAY = 0.2f;
 
     private enum Intent {NONE, ATTACKING}
 
@@ -289,6 +290,8 @@ public class PlayState extends GameState implements InputProcessor {
 
         server.sendToAllTCP(new GameInitializationMessage(p1Deck, p2Deck));
 
+        float delay = 0.2f; // 1
+        float perCardDelay = 0.1f; // 0.5f
         int cardsToDraw = 5;
         for (int i = 0; i < cardsToDraw; i++) {
             DelayedEvents.schedule(new Runnable() {
@@ -297,7 +300,7 @@ public class PlayState extends GameState implements InputProcessor {
                     server.sendToAllTCP(new DrawMessage(Player.PLAYER_1));
                     server.sendToAllTCP(new DrawMessage(Player.PLAYER_2));
                 }
-            }, 1 + i * 0.5f);
+            }, delay + i * perCardDelay);
         }
 
         DelayedEvents.schedule(new Runnable() {
@@ -305,14 +308,14 @@ public class PlayState extends GameState implements InputProcessor {
             public void run() {
                 server.sendToAllTCP(new NextPlayersTurnMessage(Player.PLAYER_1));
             }
-        }, 1 + cardsToDraw * 0.5f);
+        }, delay + cardsToDraw * perCardDelay);
 
         DelayedEvents.schedule(new Runnable() {
             @Override
             public void run() {
                 server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
             }
-        }, 1 + cardsToDraw * 0.5f + 1);
+        }, delay + cardsToDraw * perCardDelay + delay);
 
     }
 
@@ -547,7 +550,7 @@ public class PlayState extends GameState implements InputProcessor {
 //        field.placeCardOnField(currentlySelectedCard, Zone.MONSTER, turnPlayer, cardPlayMode, Location.FIELD);
 
         //TODO: pass location as parameter
-        SummonMessage m = new SummonMessage(playerId.index, Location.HAND.index, currentlySelectedCard.getUniqueId(), summonType.index, cardPlayMode);
+        SummonMessage m = new SummonMessage(playerId, Location.HAND, currentlySelectedCard.getUniqueId(), summonType, cardPlayMode);
         client.sendTCP(m);
     }
 
@@ -712,15 +715,17 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void handleSummonMessage(SummonMessage m) {
-        Player player = Player.indexToPlayer(m.player);
+        Player player = Player.valueOf(m.player);
+        SummonType summonType = SummonType.valueOf(m.summonType);
+        Location location = Location.valueOf(m.location);
         Card card = CardManager.getUnique(m.cardId);
         YGO.debug("Summoning " + card.getName() + " (" + card.getUniqueId() + ") for " + player);
-        if (Location.indexToLocation(m.location) == Location.HAND) {
+        if (location == Location.HAND) {
             Hand hand = hands[player.index];
             hand.removeCard(card, playerId);
         }
-        if (m.summonType == SummonType.NORMAL_SUMMON.index) {
-            card.normalSummonedThisTurn = true;
+        if (summonType == SummonType.NORMAL_SUMMON || summonType == SummonType.SET) {
+            card.normalSummonedOrSetThisTurn = true;
         }
         field.placeCardOnField(card, Zone.MONSTER, player, new CardPlayMode(m.cardPlayMode), Location.FIELD);
     }
@@ -743,14 +748,14 @@ public class PlayState extends GameState implements InputProcessor {
             if (currentPhase == Phase.DRAW_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnDrawPhase);
                 // draw
-                DelayedEvents.schedule(() -> client.sendTCP(new DrawMessage(playerId)), 0.5f);
+                DelayedEvents.schedule(() -> client.sendTCP(new DrawMessage(playerId)), PHASE_CHANGE_DELAY / 2);
                 //TODO have to check if there are no events that occur during draw phase
-                advanceToPhase(Phase.STANDBY_PHASE, 1);
+                advanceToPhase(Phase.STANDBY_PHASE, PHASE_CHANGE_DELAY);
             }
             else if (currentPhase == Phase.STANDBY_PHASE) {
                 setPhaseButtonVisibleButOthersNot(btnStandbyPhase);
                 //TODO have to check if there are no events that occur during standby phase
-                advanceToPhase(Phase.MAIN_PHASE_1, 1);
+                advanceToPhase(Phase.MAIN_PHASE_1, PHASE_CHANGE_DELAY);
             }
             else if (currentPhase == Phase.MAIN_PHASE_1) {
                 setPhaseButtonVisibleButOthersNot(btnMainPhase1);
@@ -808,7 +813,7 @@ public class PlayState extends GameState implements InputProcessor {
             for (Cell c : field.getZone(Zone.MONSTER, playerId)) {
                 if (c.hasCard()) {
                     c.card.attacksThisTurn = 0;
-                    c.card.normalSummonedThisTurn = false;
+                    c.card.normalSummonedOrSetThisTurn = false;
                 }
             }
         }
@@ -914,14 +919,16 @@ public class PlayState extends GameState implements InputProcessor {
         Cell cell = field.placeCardOnField(card, zone, activator, new CardPlayMode(CardPlayMode.FACE_UP), Location.FIELD);
         card.onEffectActivation(activator);
 
-        DelayedEvents.schedule(() -> {
-            TweenAnimations.submit(card, cell, field.getZone(Zone.GRAVEYARD, activator)[0], () -> {
-                card.location = Location.GRAVEYARD;
-                cell.card = null;
-                MultiCardCell mcc = (MultiCardCell) field.getZone(Zone.GRAVEYARD, activator)[0];
-                mcc.cards.add(card);
-            });
-        }, 1f);
+        if (!card.isFieldSpell()) {
+            DelayedEvents.schedule(() -> {
+                TweenAnimations.submit(card, cell, field.getZone(Zone.GRAVEYARD, activator)[0], () -> {
+                    card.location = Location.GRAVEYARD;
+                    cell.card = null;
+                    MultiCardCell mcc = (MultiCardCell) field.getZone(Zone.GRAVEYARD, activator)[0];
+                    mcc.cards.add(card);
+                });
+            }, 1f);
+        }
     }
 
     public void handleBattlePositionChangeMessage(BattlePositionChangeMessage m) {

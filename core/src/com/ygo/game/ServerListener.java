@@ -67,7 +67,7 @@ public class ServerListener extends Listener {
                                 server.sendToAllTCP(new NextPlayersTurnMessage(nextPlayer));
                                 debug("Server: Sending NextPlayersTurnMessage. Now " + nextPlayer.toString() + "'s turn");
                             }
-                        }, 1);
+                        }, PlayState.PHASE_CHANGE_DELAY);
 
                         DelayedEvents.schedule(new Runnable() {
                             @Override
@@ -75,7 +75,7 @@ public class ServerListener extends Listener {
                                 server.sendToAllTCP(new PhaseChangeMessage(Phase.DRAW_PHASE));
 
                             }
-                        }, 2);
+                        }, PlayState.PHASE_CHANGE_DELAY * 2);
                     }
                 });
             }

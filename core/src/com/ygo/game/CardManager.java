@@ -8,6 +8,7 @@ import com.ygo.game.GameStates.PlayState;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -62,6 +63,7 @@ public class CardManager {
 
     public static void initializeLuaScripts(PlayState playState, Set<Card> cardsInPlay) {
         Globals globals = CardManager.getGlobals();
+        globals.set("testFunction", new LuaFunctions.TestFunction());
         globals.set("inflictDamage", new LuaFunctions.InflictDamage(playState::inflictDamage));
         globals.set("increaseLifepoints", new LuaFunctions.IncreaseLifepoints(playState::increaseLifepoints));
 //        cardsInPlay.forEach(card -> globals.load(Gdx.files.internal("scripts/" + card.getSerial() + ".lua").readString()).call());
@@ -69,8 +71,9 @@ public class CardManager {
         cardsInPlay.forEach(card -> {
             FileHandle script = Gdx.files.internal("scripts/c" + card.getSerial() + ".lua");
             if (script.exists()) {
+                String constants = Arrays.stream(EffectCode.values()).map(e -> e.name() + " = " + e.ordinal()).collect(Collectors.joining("\n")) + "\n";
                 String table = "c" + card.getSerial() + " = {}\n";
-                globals.load(table + script.readString()).call();
+                globals.load(constants + table + script.readString()).call();
             }
         });
     }

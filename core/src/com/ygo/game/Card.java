@@ -18,11 +18,13 @@ import com.ygo.game.Types.Location;
 import com.ygo.game.Types.Player;
 import com.ygo.game.Types.Race;
 import com.ygo.game.db.CardDefinition;
+import com.ygo.game.utils.Utils;
 
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -40,7 +42,7 @@ public class Card {
     public Location location = Location.HAND;
     public Vector2 positionInHand = new Vector2();
     public int attacksThisTurn = 0;
-    public boolean normalSummonedThisTurn;
+    public boolean normalSummonedOrSetThisTurn;
     /** Who is the original owner of the card */
     public Player owner;
     /** Who currently has the card in their position (i.e. Change of Heart) */
@@ -134,14 +136,11 @@ public class Card {
     }
 
     public void onEffectActivation(Player activator) {
-        LuaValue function = CardManager.getGlobals().get("c" + getSerial()).get("onEffectActivation");
-        if (!function.isnil() && function.isfunction()) {
+        Optional<LuaValue> function = Utils.getLuaFunction(this, "onEffectActivation");
+        function.ifPresent(func -> {
             Gdx.app.log("Card", "Card effect activated for " + getName() + " under " + activator.toString());
-            function.call(CoerceJavaToLua.coerce(activator.name()));
-        }
-        else {
-            Gdx.app.log("Card", "No effect to be activated for " + getName());
-        }
+            func.call(CoerceJavaToLua.coerce(activator.name()));
+        });
     }
 
     @Override
@@ -163,7 +162,7 @@ public class Card {
     }
 
     public boolean canChangeBattlePosition() {
-        return !normalSummonedThisTurn && battlePositionChangesThisTurn < maximumNumberOfBattlePositionChanges;
+        return !normalSummonedOrSetThisTurn && battlePositionChangesThisTurn < maximumNumberOfBattlePositionChanges;
     }
 
     /** Pass in modes, one per element */
@@ -209,6 +208,14 @@ public class Card {
     }
 
     public int getDef() {
+        return definition.getDef();
+    }
+
+    public int getOriginalAtk() {
+        return definition.getAtk();
+    }
+
+    public int getOriginalDef() {
         return definition.getDef();
     }
 
