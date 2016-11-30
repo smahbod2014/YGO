@@ -68,11 +68,11 @@ public class Field {
             for (Zone z : Zone.values()) {
                 int quantity;
                 switch (z) {
-                    case MONSTER:
-                    case SPELL_TRAP:
+                    case Monster:
+                    case SpellTrap:
                         quantity = 5;
                         break;
-                    case PENDULUM:
+                    case Pendulum:
                         quantity = 2;
                         break;
                     default:
@@ -96,51 +96,51 @@ public class Field {
         }
         Player p1 = Player.indexToPlayer(player1);
         Player p2 = Player.indexToPlayer(player2);
-        cells[player1][EXTRA_DECK.index][0] = new MultiCardCell(-5, 5, sideWidth, height, p1);
-        cells[player1][PENDULUM.index][0] = new Cell(-5, 5 - height * 1 - padding * 1, sideWidth, height, p1);
-        cells[player1][FIELD_SPELL.index][0] = new Cell(-5, 5 - height * 2 - padding * 2, sideWidth, height, p1);
+        cells[player1][ExtraDeck.index][0] = new MultiCardCell(-5, 5, sideWidth, height, p1);
+        cells[player1][Pendulum.index][0] = new Cell(-5, 5 - height * 1 - padding * 1, sideWidth, height, p1);
+        cells[player1][FieldSpell.index][0] = new Cell(-5, 5 - height * 2 - padding * 2, sideWidth, height, p1);
 
         float gapFromSide = 10f * 0.03f;
         float topBottomMargin = 10f * 0.1f;
         float startX = -5 + sideWidth + gapFromSide;
         for (int i = 0; i < 5; i++) {
-            cells[player1][SPELL_TRAP.index][i] = new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1, i);
+            cells[player1][SpellTrap.index][i] = new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1, i);
         }
         for (int i = 0; i < 5; i++) {
-            cells[player1][MONSTER.index][i] = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1, i);
+            cells[player1][Monster.index][i] = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1, i);
         }
 
         float rightStartX = startX + height * 5 + gapFromSide;
-        cells[player1][DECK.index][0] = new MultiCardCell(rightStartX, 5, sideWidth, height, p1);
-        cells[player1][PENDULUM.index][1] = new Cell(rightStartX, 5 - height * 1 - padding * 1, sideWidth, height, p1);
-        cells[player1][GRAVEYARD.index][0] = new MultiCardCell(rightStartX, 5 - height * 2 - padding * 2, sideWidth, height, p1);
-        cells[player1][BANISHED.index][0] = new MultiCardCell(rightStartX + padding + sideWidth, 5 - height * 2 - padding * 2, sideWidth, height, p1);
+        cells[player1][Deck.index][0] = new MultiCardCell(rightStartX, 5, sideWidth, height, p1);
+        cells[player1][Pendulum.index][1] = new Cell(rightStartX, 5 - height * 1 - padding * 1, sideWidth, height, p1);
+        cells[player1][Graveyard.index][0] = new MultiCardCell(rightStartX, 5 - height * 2 - padding * 2, sideWidth, height, p1);
+        cells[player1][Banished.index][0] = new MultiCardCell(rightStartX + padding + sideWidth, 5 - height * 2 - padding * 2, sideWidth, height, p1);
 
 
-        cells[player2][EXTRA_DECK.index][0] = new MultiCardCell(rightStartX, 5 - height * 5 - padding * 5, sideWidth, height, p2);
-        cells[player2][PENDULUM.index][0] = new Cell(rightStartX, 5 - height * 4 - padding * 4, sideWidth, height, p2);
-        cells[player2][FIELD_SPELL.index][0] = new Cell(rightStartX, 5 - height * 3 - padding * 3, sideWidth, height, p2);
+        cells[player2][ExtraDeck.index][0] = new MultiCardCell(rightStartX, 5 - height * 5 - padding * 5, sideWidth, height, p2);
+        cells[player2][Pendulum.index][0] = new Cell(rightStartX, 5 - height * 4 - padding * 4, sideWidth, height, p2);
+        cells[player2][FieldSpell.index][0] = new Cell(rightStartX, 5 - height * 3 - padding * 3, sideWidth, height, p2);
 
-        cells[player2][GRAVEYARD.index][0] = new MultiCardCell(-5, 5 - height * 3 - padding * 3, sideWidth, height, p2);
-        cells[player2][BANISHED.index][0] = new MultiCardCell(-5 - padding - sideWidth, 5 - height * 3 - padding * 3, sideWidth, height, p2);
-        cells[player2][PENDULUM.index][1] = new Cell(-5, 5 - height * 4 - padding * 4, sideWidth, height, p2);
-        cells[player2][DECK.index][0] = new MultiCardCell(-5, 5 - height * 5 - padding * 5, sideWidth, height, p2);
+        cells[player2][Graveyard.index][0] = new MultiCardCell(-5, 5 - height * 3 - padding * 3, sideWidth, height, p2);
+        cells[player2][Banished.index][0] = new MultiCardCell(-5 - padding - sideWidth, 5 - height * 3 - padding * 3, sideWidth, height, p2);
+        cells[player2][Pendulum.index][1] = new Cell(-5, 5 - height * 4 - padding * 4, sideWidth, height, p2);
+        cells[player2][Deck.index][0] = new MultiCardCell(-5, 5 - height * 5 - padding * 5, sideWidth, height, p2);
 
         for (int i = 0; i < 5; i++) {
-            cells[player2][SPELL_TRAP.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2, 4 - i);
+            cells[player2][SpellTrap.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2, 4 - i);
         }
         for (int i = 0; i < 5; i++) {
-            cells[player2][MONSTER.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2, 4 - i);
+            cells[player2][Monster.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2, 4 - i);
         }
 
         //if we are player 1, we need to reverse player 2's monster/spelltrap zones
         if (playerId == PLAYER_1) {
-            Utils.reverseArray(getZone(MONSTER, PLAYER_2));
-            Utils.reverseArray(getZone(SPELL_TRAP, PLAYER_2));
+            Utils.reverseArray(getZone(Monster, PLAYER_2));
+            Utils.reverseArray(getZone(SpellTrap, PLAYER_2));
         }
         else {
-            Utils.reverseArray(getZone(MONSTER, PLAYER_1));
-            Utils.reverseArray(getZone(SPELL_TRAP, PLAYER_1));
+            Utils.reverseArray(getZone(Monster, PLAYER_1));
+            Utils.reverseArray(getZone(SpellTrap, PLAYER_1));
         }
 
         for (Player p : Player.values()) {
@@ -243,7 +243,7 @@ public class Field {
     public void renderStats(Player playerId, SpriteBatch batch) {
         Utils.prepareViewport();
         for (Player p : Player.values()) {
-            for (Cell c : getZone(MONSTER, p)) {
+            for (Cell c : getZone(Monster, p)) {
                 c.drawStats(batch, playerId, perspectiveCamera);
                 Vector2 pos = Utils.worldPerspectiveToScreen(c.position.x + c.size.x / 2, c.position.y - c.size.y / 2, perspectiveCamera);
                 YGO.cardStatsFont.draw(batch, "" + c.index, pos.x, pos.y);
@@ -318,13 +318,13 @@ public class Field {
     public void drawAttackLine(Player attacker, int cellIndexOrigin, int cellIndexDestination) {
         sr.begin(ShapeRenderer.ShapeType.Line);
         sr.setColor(Color.RED);
-        Vector2 origin = getCellByIndex(attacker, MONSTER, cellIndexOrigin).getCenter();
+        Vector2 origin = getCellByIndex(attacker, Monster, cellIndexOrigin).getCenter();
         Vector2 dest;
         if (cellIndexDestination >= 0) {
-            dest = getCellByIndex(attacker.getOpponent(), MONSTER, cellIndexDestination).getCenter();
+            dest = getCellByIndex(attacker.getOpponent(), Monster, cellIndexDestination).getCenter();
         }
         else {
-            dest = getCellByIndex(attacker.getOpponent(), SPELL_TRAP, 2).getCenter();
+            dest = getCellByIndex(attacker.getOpponent(), SpellTrap, 2).getCenter();
         }
         sr.line(origin.x, 0, origin.y, dest.x, 0, dest.y);
         sr.end();

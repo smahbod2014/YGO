@@ -10,6 +10,8 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
+import org.luaj.vm2.lib.ZeroArgFunction;
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
 import java.util.Set;
@@ -32,6 +34,30 @@ public class LuaFunctions {
         @Override
         public LuaValue call(LuaValue arg) {
             System.out.println(arg.toint());
+            return NIL;
+        }
+    }
+
+    public static class CreateEffect extends ZeroArgFunction {
+        @Override
+        public LuaValue call() {
+            return CoerceJavaToLua.coerce(new Effect());
+        }
+    }
+
+    public static class RegisterEffect extends TwoArgFunction {
+
+        private PlayState playState;
+
+        public RegisterEffect(PlayState playState) {
+            this.playState = playState;
+        }
+
+        @Override
+        public LuaValue call(LuaValue effect, LuaValue card) {
+            Card c = (Card) CoerceLuaToJava.coerce(card, Card.class);
+            Effect e = (Effect) CoerceLuaToJava.coerce(effect, Effect.class);
+            playState.registerEffect(e, c);
             return NIL;
         }
     }

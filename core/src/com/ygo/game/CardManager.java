@@ -4,8 +4,12 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.ygo.game.GameStates.PlayState;
+import com.ygo.game.Types.Race;
+import com.ygo.game.Types.Zone;
 
 import org.luaj.vm2.Globals;
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
 import java.util.Arrays;
@@ -63,17 +67,31 @@ public class CardManager {
 
     public static void initializeLuaScripts(PlayState playState, Set<Card> cardsInPlay) {
         Globals globals = CardManager.getGlobals();
-        globals.set("testFunction", new LuaFunctions.TestFunction());
-        globals.set("inflictDamage", new LuaFunctions.InflictDamage(playState::inflictDamage));
-        globals.set("increaseLifepoints", new LuaFunctions.IncreaseLifepoints(playState::increaseLifepoints));
-//        cardsInPlay.forEach(card -> globals.load(Gdx.files.internal("scripts/" + card.getSerial() + ".lua").readString()).call());
-//        globals.load(Gdx.files.internal("scripts/c84257640.lua").readString()).call();
+        globals.set("Duel", LuaValue.tableOf());
+        globals.get("Duel").set("testFunction", new LuaFunctions.TestFunction());
+        globals.get("Duel").set("inflictDamage", new LuaFunctions.InflictDamage(playState::inflictDamage));
+        globals.get("Duel").set("increaseLifepoints", new LuaFunctions.IncreaseLifepoints(playState::increaseLifepoints));
+        globals.set(Zone.class.getSimpleName(), LuaValue.tableOf());
+        globals.set(Race.class.getSimpleName(), LuaValue.tableOf());
+        globals.set(Effect.Criteria.class.getSimpleName(), LuaValue.tableOf());
+        globals.set(Effect.Type.class.getSimpleName(), LuaValue.tableOf());
+        globals.set(Effect.Flag.class.getSimpleName(), LuaValue.tableOf());
+        Arrays.stream(Zone.values()).forEach(z -> globals.get(z.getClass().getSimpleName()).set(z.name(), CoerceJavaToLua.coerce(z)));
+        Arrays.stream(Race.values()).forEach(r -> globals.get(r.getClass().getSimpleName()).set(r.name(), CoerceJavaToLua.coerce(r)));
+        Arrays.stream(Effect.Criteria.values()).forEach(c -> globals.get(c.getClass().getSimpleName()).set(c.name(), CoerceJavaToLua.coerce(c)));
+        Arrays.stream(Effect.Type.values()).forEach(t -> globals.get(t.getClass().getSimpleName()).set(t.name(), CoerceJavaToLua.coerce(t)));
+        Arrays.stream(Effect.Flag.values()).forEach(f -> globals.get(f.getClass().getSimpleName()).set(f.name(), CoerceJavaToLua.coerce(f)));
         cardsInPlay.forEach(card -> {
             FileHandle script = Gdx.files.internal("scripts/c" + card.getSerial() + ".lua");
             if (script.exists()) {
-                String constants = Arrays.stream(EffectCode.values()).map(e -> e.name() + " = " + e.ordinal()).collect(Collectors.joining("\n")) + "\n";
-                String table = "c" + card.getSerial() + " = {}\n";
-                globals.load(constants + table + script.readString()).call();
+                String cardTable = String.format("c%s", card.getSerial());
+                globals.set(cardTable, LuaValue.tableOf());
+                globals.load(script.readString()).call();
+                //TODO: Have to set up listeners here for different card activation criteria
+                globals.get(cardTable).get("initialize").call(CoerceJavaToLua.coerce(card));
+            }
+            else {
+                Gdx.app.log("CardManager", "No script found for " + card.getName());
             }
         });
     }

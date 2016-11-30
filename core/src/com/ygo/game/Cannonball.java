@@ -45,16 +45,16 @@ public class Cannonball {
     }
 
     private void init(Field field, Player initiatedBy, int originIndex) {
-        Cell origin = field.getCellByIndex(initiatedBy, Zone.MONSTER, originIndex);
+        Cell origin = field.getCellByIndex(initiatedBy, Zone.Monster, originIndex);
         originPos = new Vector3(origin.getCenter().x, 0.15f, origin.getCenter().y);
 
-        float enemyCellZ = field.getCellByIndex(initiatedBy.getOpponent(), Zone.MONSTER, 0).getCenter().y;
+        float enemyCellZ = field.getCellByIndex(initiatedBy.getOpponent(), Zone.Monster, 0).getCenter().y;
         if (enemyCellZ < origin.getCenter().y) {
-            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), Zone.SPELL_TRAP, 2).getCenter().sub(0, origin.size.y);
+            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), Zone.SpellTrap, 2).getCenter().sub(0, origin.size.y);
             destPos = new Vector3(target.x, 0.15f, target.y);
         }
         else {
-            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), Zone.SPELL_TRAP, 2).getCenter().add(0, origin.size.y);
+            Vector2 target = field.getCellByIndex(initiatedBy.getOpponent(), Zone.SpellTrap, 2).getCenter().add(0, origin.size.y);
             destPos = new Vector3(target.x, 0.15f, target.y);
         }
 
@@ -66,8 +66,8 @@ public class Cannonball {
     }
 
     private void init(Field field, Player initiatedBy, int originIndex, int destinationIndex) {
-        Cell origin = field.getCellByIndex(initiatedBy, Zone.MONSTER, originIndex);
-        Cell destination = field.getCellByIndex(initiatedBy.getOpponent(), Zone.MONSTER, destinationIndex);
+        Cell origin = field.getCellByIndex(initiatedBy, Zone.Monster, originIndex);
+        Cell destination = field.getCellByIndex(initiatedBy.getOpponent(), Zone.Monster, destinationIndex);
         originPos = new Vector3(origin.getCenter().x, 0.15f, origin.getCenter().y);
         destPos = new Vector3(destination.getCenter().x, 0.15f, destination.getCenter().y);
         decal = Decal.newDecal(origin.size.x / 2, origin.size.y / 2, new TextureRegion(cannonball));

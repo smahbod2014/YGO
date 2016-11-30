@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.google.common.collect.ImmutableList;
 import com.ygo.game.Types.Attribute;
 import com.ygo.game.Types.CardFlavor;
 import com.ygo.game.Types.CardPlayMode;
@@ -17,13 +18,16 @@ import com.ygo.game.Types.CardType;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.Player;
 import com.ygo.game.Types.Race;
+import com.ygo.game.Types.Zone;
 import com.ygo.game.db.CardDefinition;
 import com.ygo.game.utils.Utils;
 
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,6 +57,9 @@ public class Card {
     private CardPlayMode playMode;
     private UUID uniqueId;
     private CardDefinition definition;
+    private Zone zone;
+    private List<Effect> effects = new ArrayList<>();
+    private Set<>
 
     public Card(CardDefinition def, UUID uniqueId, Player owner) {
         checkNotNull(def);
@@ -237,6 +244,18 @@ public class Card {
 
     public Vector3 getAnimationPosition() {
         return animationPosition;
+    }
+
+    public void setZone(Zone zone) {
+        this.zone = zone;
+    }
+
+    public Zone getZone() {
+        return zone;
+    }
+
+    public void addEffect(Effect effect) {
+        this.effects.add(effect);
     }
 
     public boolean isNormal() {

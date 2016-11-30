@@ -37,24 +37,24 @@ public class Tests {
             for (Zone z : Zone.values()) {
                 for (Cell c : field.getZone(z, p)) {
                     switch (z) {
-                        case DECK:
+                        case Deck:
                             fillUpDeck(c, 60, CardPlayMode.FACE_DOWN);
                             break;
-                        case EXTRA_DECK:
+                        case ExtraDeck:
                             fillUpDeck(c, 15, CardPlayMode.FACE_DOWN);
                             break;
-                        case GRAVEYARD:
+                        case Graveyard:
                             fillUpDeck(c, 20, CardPlayMode.FACE_UP);
                             break;
-                        case BANISHED:
+                        case Banished:
                             fillUpDeck(c, 10, CardPlayMode.FACE_UP);
                             break;
                         default:
                             int playMode = CardPlayMode.FACE_UP;
-                            if (z == Zone.MONSTER && random.nextBoolean()) {
+                            if (z == Zone.Monster && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE;
                             }
-                            if (z == Zone.SPELL_TRAP && random.nextBoolean()) {
+                            if (z == Zone.SpellTrap && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN;
                             }
 //                            field.placeCardOnField(new Card(), z, p, playMode, Location.FIELD);

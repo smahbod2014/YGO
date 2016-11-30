@@ -1,0 +1,1 @@
+A buff in this context is any kind of lingering effect on a monster, mainly with regard to increasing/decreasing its stats (atk, def, level...), changing its attribute, providing destruction by battle immunity, etc. It does not necessarily connote a strictly beneficial stat boost, as some buffs can decrease stats, but will still be called Buffs.
