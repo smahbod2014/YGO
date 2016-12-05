@@ -72,7 +72,7 @@ public class Utils {
     }
 
     public static <T> Array<T> convert2dArrayToGdxArray(T[][] matrix) {
-        Array<T> result = new Array<T>();
+        Array<T> result = new Array<>();
         for (int i = 0; i < matrix.length; i++) {
             for (int j = 0; j < matrix[i].length; j++) {
                 result.add(matrix[i][j]);
@@ -114,6 +114,7 @@ public class Utils {
         return start.cpy().scl(1 - t).add(end.cpy().scl(t));
     }
 
+    @Deprecated
     public static Optional<LuaValue> getLuaFunction(Card card, String functionName) {
         LuaValue table = CardManager.getGlobals().get("c" + card.getSerial());
         if (!table.isnil()) {

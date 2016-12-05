@@ -10,7 +10,6 @@ import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
-import com.google.common.collect.ImmutableList;
 import com.ygo.game.Types.Attribute;
 import com.ygo.game.Types.CardFlavor;
 import com.ygo.game.Types.CardPlayMode;
@@ -19,6 +18,8 @@ import com.ygo.game.Types.Location;
 import com.ygo.game.Types.Player;
 import com.ygo.game.Types.Race;
 import com.ygo.game.Types.Zone;
+import com.ygo.game.buffs.Buff;
+import com.ygo.game.buffs.StatBuff;
 import com.ygo.game.db.CardDefinition;
 import com.ygo.game.utils.Utils;
 
@@ -27,9 +28,12 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -43,10 +47,11 @@ public class Card {
     public Texture image;
     public Decal decal, faceDown;
     public boolean isHovering;
-    public Location location = Location.HAND;
+    public Location location = Location.Hand;
     public Vector2 positionInHand = new Vector2();
     public int attacksThisTurn = 0;
     public boolean normalSummonedOrSetThisTurn;
+    public boolean spellTrapSetThisTurn;
     /** Who is the original owner of the card */
     public Player owner;
     /** Who currently has the card in their position (i.e. Change of Heart) */
@@ -59,7 +64,8 @@ public class Card {
     private CardDefinition definition;
     private Zone zone;
     private List<Effect> effects = new ArrayList<>();
-    private Set<>
+    /** Card ID -> Effect ID -> Buff */
+    private Map<UUID, Map<UUID, Buff>> buffs = new HashMap<>();
 
     public Card(CardDefinition def, UUID uniqueId, Player owner) {
         checkNotNull(def);
@@ -129,7 +135,7 @@ public class Card {
     }
 
     public void draw(SpriteBatch sb, boolean opponentsCard) {
-        if (location == Location.HAND) {
+        if (location == Location.Hand) {
             float y = positionInHand.y;
             if (isHovering)
                 y += 30;
@@ -142,6 +148,7 @@ public class Card {
         }
     }
 
+    @Deprecated
     public void onEffectActivation(Player activator) {
         Optional<LuaValue> function = Utils.getLuaFunction(this, "onEffectActivation");
         function.ifPresent(func -> {
@@ -160,7 +167,7 @@ public class Card {
         return getSerial().equals(((Card) o).getSerial());
     }
 
-    public UUID getUniqueId() {
+    public UUID getId() {
         return uniqueId;
     }
 
@@ -210,14 +217,6 @@ public class Card {
         return definition.getRace();
     }
 
-    public int getAtk() {
-        return definition.getAtk();
-    }
-
-    public int getDef() {
-        return definition.getDef();
-    }
-
     public int getOriginalAtk() {
         return definition.getAtk();
     }
@@ -226,8 +225,59 @@ public class Card {
         return definition.getDef();
     }
 
-    public int getLevel() {
+    public int getOriginalLevel() {
         return definition.getLevel();
+    }
+
+    public int getAtk() {
+        return getBuffedStat(Effect.Type.ModifyAtk, this::getOriginalAtk);
+    }
+
+    public int getDef() {
+        return getBuffedStat(Effect.Type.ModifyDef, this::getOriginalDef);
+    }
+
+    public int getLevel() {
+        return getBuffedStat(Effect.Type.ModifyLevel, this::getOriginalLevel);
+    }
+
+    private int getBuffedStat(Effect.Type type, Supplier<Integer> baseStatFunc) {
+        int boostedStat = 0;
+        for (Map<UUID, Buff> b : buffs.values()) {
+            for (Buff buff : b.values()) {
+                if (buff instanceof StatBuff) {
+                    StatBuff statBuff = (StatBuff) buff;
+                    if (statBuff.getType() == type) {
+                        boostedStat += statBuff.getBoost();
+                    }
+                }
+            }
+        }
+        return Math.max(0, baseStatFunc.get() + boostedStat);
+    }
+
+    /**
+     * Checks whether this card is already being buffed by a given effect. Used
+     * in making sure that a single card doesn't affect this card twice.
+     *
+     * Read it like this: Is this card affected by the buffs granted by card cardId emitting effect effectId?
+     * @return
+     */
+    public boolean isAffectedByBuff(UUID cardId, UUID effectId) {
+        return buffs.containsKey(cardId) && buffs.get(cardId).containsKey(effectId);
+    }
+
+    public void addBuff(UUID cardId, UUID effectId, Buff buff) {
+        if (!buffs.containsKey(cardId)) {
+            buffs.put(cardId, new HashMap<>());
+        }
+        Map<UUID, Buff> eidToBuff = buffs.get(cardId);
+        eidToBuff.put(effectId, buff);
+//        buffs.putIfAbsent(cardId, new HashMap<>()).put(effectId, buff);
+    }
+
+    public void removeBuff(UUID cardId, UUID effectId) {
+        buffs.get(cardId).remove(effectId);
     }
 
     public String getName() {
@@ -272,5 +322,25 @@ public class Card {
 
     public boolean isFieldSpell() {
         return definition.getFlavors().contains(CardFlavor.FieldSpell);
+    }
+
+    /**
+     * Returns the original owner of this card
+     * @return
+     */
+    public Player getOwner() {
+        return owner;
+    }
+
+    /**
+     * Returns whoever currently controls this card, which isn't always necessarily its owner
+     * @return
+     */
+    public Player getController() {
+        return controller;
+    }
+
+    public Location getLocation() {
+        return location;
     }
 }

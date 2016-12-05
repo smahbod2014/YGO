@@ -129,7 +129,17 @@ public class Cell {
         screenPos.x *= scaleX;
         screenPos.y *= scaleY;
         screenPos.y -= 5;
-        YGO.cardStatsFont.draw(sb, card.getAtk() + "/" + card.getDef(), screenPos.x, screenPos.y);
+        //TODO: Allow different colorings for atk/def if they're independently higher or lower than their originals
+        // while not messing up formatting
+        if (card.getAtk() > card.getOriginalAtk() || card.getDef() > card.getOriginalDef()) {
+            YGO.cardStatsFont.setColor(Color.YELLOW);
+        }
+        else if (card.getAtk() < card.getOriginalAtk() || card.getDef() < card.getOriginalDef()) {
+            YGO.cardStatsFont.setColor(Color.PINK);
+        }
+        String stats = card.getAtk() + "/" + card.getDef();
+        YGO.cardStatsFont.draw(sb, stats, screenPos.x - Utils.getFontDimensions(YGO.cardStatsFont, stats).x / 2, screenPos.y);
+        YGO.cardStatsFont.setColor(Color.WHITE);
     }
 
     @Override

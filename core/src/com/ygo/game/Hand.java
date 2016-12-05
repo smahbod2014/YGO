@@ -32,7 +32,7 @@ public class Hand {
 
     public void addCard(Card card, Player fromPerspective) {
         cards.add(card);
-        card.setLocation(Location.HAND);
+        card.setLocation(Location.Hand);
         refreshCardPositions(fromPerspective);
     }
 
@@ -84,9 +84,9 @@ public class Hand {
         Vector2 mousePos = Utils.getMousePos(playState.camera);
         boolean cardWasClicked = false;
         for (Card card : cards) {
-            if (card.location == Location.HAND && card.contains(mousePos, playerId != player)) {
+            if (card.location == Location.Hand && card.contains(mousePos, playerId != player)) {
                 if (!card.isHovering) {
-                    YGO.debug(card.getName() + ": " + card.getUniqueId());
+                    YGO.debug(card.getName() + ": " + card.getId());
                 }
                 card.isHovering = true;
                 //detect click

@@ -6,6 +6,7 @@ package com.ygo.game.Types;
 public enum Player {
     PLAYER_1(0), PLAYER_2(1);
 
+    @Deprecated
     public final int index;
 
     Player(int index) {
@@ -18,7 +19,7 @@ public enum Player {
     }
 
     public Player getOpponent() {
-        return indexToPlayer((this.index + 1) % 2);
+        return this == PLAYER_1 ? PLAYER_2 : PLAYER_1;
     }
 
     public static Player indexToPlayer(int index) {

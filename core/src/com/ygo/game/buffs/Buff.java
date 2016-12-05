@@ -1,8 +1,16 @@
 package com.ygo.game.buffs;
 
-import com.ygo.game.Card;
+import com.ygo.game.Effect;
 
-public interface Buff {
+public abstract class Buff {
 
-    void apply(Card card);
+    protected Effect.Type type;
+
+    protected Buff(Effect.Type type) {
+        this.type = type;
+    }
+
+    public Effect.Type getType() {
+        return type;
+    }
 }

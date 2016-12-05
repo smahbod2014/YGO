@@ -14,6 +14,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -75,14 +76,18 @@ import com.ygo.game.listeners.AttackButtonListener;
 import com.ygo.game.listeners.NormalSummonButtonListener;
 import com.ygo.game.listeners.SetButtonListener;
 
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 import org.skife.jdbi.v2.DBI;
 import org.sqlite.SQLiteDataSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -95,6 +100,7 @@ import static com.ygo.game.YGO.info;
 public class PlayState extends GameState implements InputProcessor {
 
     private static final int MAXIMUM_NORMAL_SUMMONS = 1;
+    private static final String TAG = "Duel";
     public static final float PHASE_CHANGE_DELAY = 0.2f;
 
     private enum Intent {NONE, ATTACKING}
@@ -104,7 +110,7 @@ public class PlayState extends GameState implements InputProcessor {
     ShapeRenderer shapeRenderer;
     DecalBatch decalBatch;
     public Field field;
-    Hand[] hands = new Hand[2];
+    Map<Player, Hand> hands = new HashMap<>();
     TextFlash phaseChangeTextFlash;
     Map<Player, TextFlash> damageTextFlashes;
 
@@ -119,10 +125,11 @@ public class PlayState extends GameState implements InputProcessor {
     Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
     Array<Explosion> explosions = new Array<Explosion>();
     Map<Player, Lifepoints> lifepointBars = new HashMap<>();
-    Map<Card, Effect> registeredEffects = new HashMap<>();
-    Map<UUID, Effect> activeEffects = new HashMap<>();
+    Map<Card, Set<Effect>> registeredEffects = new HashMap<>();
+    /** Card ID -> Effect ID -> Effect */
+    Map<UUID, Set<Effect>> activeEffects = new HashMap<>();
     Cannonball cannonball;
-    Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<Integer, AttackSwordVisual>();
+    Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<>();
     Card currentlySelectedCard;
     Cell currentlySelectedCell;
     public Player turnPlayer = Player.PLAYER_1;
@@ -186,8 +193,8 @@ public class PlayState extends GameState implements InputProcessor {
 
         initCardMenus();
 
-        hands[0] = new Hand(this, 0.625f, Player.PLAYER_1);
-        hands[1] = new Hand(this, 0.625f, Player.PLAYER_2);
+        hands.put(Player.PLAYER_1, new Hand(this, 0.625f, Player.PLAYER_1));
+        hands.put(Player.PLAYER_2, new Hand(this, 0.625f, Player.PLAYER_2));
 
         phaseButtons.add(btnDrawPhase);
         phaseButtons.add(btnStandbyPhase);
@@ -330,6 +337,9 @@ public class PlayState extends GameState implements InputProcessor {
         if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
             client.sendTCP(new TestMessage(playerId.toString() + " sends TestMessage!"));
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+            destroyCardWithAnimation(field.getCellByIndex(playerId, Zone.FieldSpell, 0), playerId, 1);
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
             YGO.debug("Sending fake draw message for " + playerId.toString() + " on thread " + Thread.currentThread().getName());
             client.sendTCP(new DrawMessage(playerId));
@@ -367,6 +377,26 @@ public class PlayState extends GameState implements InputProcessor {
             debug("Mouse pos: " + Utils.getMousePos(camera));
         }
 
+        //-----------------Debug stuff above
+
+        //Map cardId -> Map<effectId, effect>
+        activeEffects.forEach((cid, effects) -> {
+            effects.forEach(e -> {
+                CardManager.getCards().forEach(card -> {
+                    // Apply the effect to cards that aren't already affected but satisfy the filter
+                    if (!card.isAffectedByBuff(cid, e.getId()) && e.satisfiesFilter(card)) {
+                        card.addBuff(cid, e.getId(), e.getBuff());
+                        Gdx.app.log(TAG, "Applying effect (" + e.getType() + ") from " + CardManager.getUnique(cid).getName() + " to " + card.getName());
+                    }
+
+                    // Remove the effect from cards that had it, but no longer satisfy the filter
+                    if (card.isAffectedByBuff(cid, e.getId()) && !e.satisfiesFilter(card)) {
+                        card.removeBuff(cid, e.getId());
+                        Gdx.app.log(TAG, "Removing effect (" + e.getType() + ") applied by " + CardManager.getUnique(cid).getName() + " from " + card.getName());
+                    }
+                });
+            });
+        });
 
         Tests.input(dt);
         DelayedEvents.update(dt);
@@ -377,7 +407,7 @@ public class PlayState extends GameState implements InputProcessor {
         for (AttackSwordVisual asv : attackSwordVisuals.values()) {
             asv.update(dt);
         }
-        if (!hands[0].handleInput(dt, playerId) && !hands[1].handleInput(dt, playerId) && !field.highlightCells() && clicked()) {
+        if (!hands.get(Player.PLAYER_1).handleInput(dt, playerId) && !hands.get(Player.PLAYER_2).handleInput(dt, playerId) && !field.highlightCells() && clicked()) {
             hideCardMenu();
             clearAllTargeting();
         }
@@ -414,8 +444,7 @@ public class PlayState extends GameState implements InputProcessor {
         field.renderCards(playerId, null);
         batch.begin();
         field.renderStats(playerId, batch);
-        hands[0].draw(batch, playerId);
-        hands[1].draw(batch, playerId);
+        hands.values().forEach(h -> h.draw(batch, playerId));
         for (TargetingCursor tc : targetingCursors) {
             tc.render(batch);
         }
@@ -525,35 +554,35 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void performNormalSummon() {
-        performSummon(SummonType.NORMAL_SUMMON, new CardPlayMode(CardPlayMode.FACE_UP | CardPlayMode.ATTACK_MODE));
+        performSummon(SummonType.NormalSummon, new CardPlayMode(CardPlayMode.FACE_UP | CardPlayMode.ATTACK_MODE));
         normalSummonsThisTurn++;
     }
 
     public void performEffectActivation() {
 //        info("performEffectActivation not implemented");
-        client.sendTCP(new CardActivationMessage(playerId, currentlySelectedCard.getUniqueId()));
+        client.sendTCP(new CardActivationMessage(playerId, currentlySelectedCard.getId()));
     }
 
     //TODO: This will later take a parameter indicating where the card is being set from (hand, deck, graveyard...)
     public void performSet() {
         if (currentlySelectedCard.getType() == CardType.Monster) {
-            performSummon(SummonType.SET, new CardPlayMode(CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE));
+            performSummon(SummonType.Set, new CardPlayMode(CardPlayMode.FACE_DOWN | CardPlayMode.DEFENSE_MODE));
         }
         else {
-            SpellTrapSetMessage m = new SpellTrapSetMessage(playerId.index, Location.HAND.index, currentlySelectedCard.getUniqueId());
+            SpellTrapSetMessage m = new SpellTrapSetMessage(playerId.index, Location.Hand.index, currentlySelectedCard.getId());
             client.sendTCP(m);
         }
     }
 
     private void performSummon(SummonType summonType, CardPlayMode cardPlayMode) {
 //        Hand hand = hands[turnPlayer.index];
-//        if (currentlySelectedCard.location == Location.HAND) {
+//        if (currentlySelectedCard.location == Location.Hand) {
 //            hand.removeCard(currentlySelectedCard, turnPlayer);
 //        }
-//        field.placeCardOnField(currentlySelectedCard, Zone.Monster, turnPlayer, cardPlayMode, Location.FIELD);
+//        field.placeCardOnField(currentlySelectedCard, Zone.Monster, turnPlayer, cardPlayMode, Location.Field);
 
         //TODO: pass location as parameter
-        SummonMessage m = new SummonMessage(playerId, Location.HAND, currentlySelectedCard.getUniqueId(), summonType, cardPlayMode);
+        SummonMessage m = new SummonMessage(playerId, Location.Hand, currentlySelectedCard.getId(), summonType, cardPlayMode);
         client.sendTCP(m);
     }
 
@@ -650,7 +679,7 @@ public class PlayState extends GameState implements InputProcessor {
 
     private void drawCard(Player player) {
         Card card = field.removeCard(player, Zone.Deck, Field.TOP_CARD);
-        hands[player.index].addCard(card, playerId);
+        hands.get(player).addCard(card, playerId);
     }
 
     private void setPhaseButtonVisibleButOthersNot(TextButton button) {
@@ -690,8 +719,8 @@ public class PlayState extends GameState implements InputProcessor {
         CardManager.submitCardsForPlay(p1Deck);
         CardManager.submitCardsForPlay(p2Deck);
 
-        field.placeCardsInZone(p1Deck, Zone.Deck, Player.PLAYER_1, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.DECK);
-        field.placeCardsInZone(p2Deck, Zone.Deck, Player.PLAYER_2, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.DECK);
+        field.placeCardsInZone(p1Deck, Zone.Deck, Player.PLAYER_1, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.Deck);
+        field.placeCardsInZone(p2Deck, Zone.Deck, Player.PLAYER_2, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.Deck);
 
         for (Player p : Player.values()) {
             for (Zone z : Zone.values()) {
@@ -701,46 +730,95 @@ public class PlayState extends GameState implements InputProcessor {
             }
         }
 
-        field.placeCardOnField(new Card(dao.getCardByName("Maha Vailo"), Player.PLAYER_1), Zone.Monster, Player.PLAYER_1, CardPlayMode.FACE_UP_ATTACK, Location.FIELD);
-        field.placeCardOnField(new Card(dao.getCardByName("Baby Dragon"), Player.PLAYER_1), Zone.Monster, Player.PLAYER_2, CardPlayMode.FACE_UP_ATTACK, Location.FIELD);
-        field.placeCardOnField(new Card(dao.getCardByName("Mystical Elf"), Player.PLAYER_2), Zone.Monster, Player.PLAYER_2, CardPlayMode.FACE_UP_ATTACK, Location.FIELD);
+//        field.placeCardOnField(new Card(dao.getCardByName("Maha Vailo"), Player.PLAYER_1), Zone.Monster, Player.PLAYER_1, CardPlayMode.FACE_UP_ATTACK, Location.Field);
+//        field.placeCardOnField(new Card(dao.getCardByName("Baby Dragon"), Player.PLAYER_1), Zone.Monster, Player.PLAYER_2, CardPlayMode.FACE_UP_ATTACK, Location.Field);
+//        field.placeCardOnField(new Card(dao.getCardByName("Mystical Elf"), Player.PLAYER_2), Zone.Monster, Player.PLAYER_2, CardPlayMode.FACE_UP_ATTACK, Location.Field);
 
         //redundant
         turnPlayer = Player.PLAYER_1;
 
         // Set up lua functions
         CardManager.initializeLuaScripts(this, CardManager.getUniqueCardsInPlay());
+
+        CardManager.getUniqueCardsInPlay().forEach(card -> {
+            if (!registeredEffects.containsKey(card)) {
+                registeredEffects.put(card, new HashSet<>());
+            }
+        });
+
+        CardManager.getCards().forEach(card -> {
+            activeEffects.put(card.getId(), new HashSet<>());
+        });
     }
 
     public void handleDrawMessage(DrawMessage m) {
-        YGO.debug(Player.valueOf(m.player) + " draws a card");
         drawCard(Player.valueOf(m.player));
     }
 
     public void handleSummonMessage(SummonMessage m) {
-        Player player = Player.valueOf(m.player);
+        Player summoner = Player.valueOf(m.player);
         SummonType summonType = SummonType.valueOf(m.summonType);
         Location location = Location.valueOf(m.location);
         Card card = CardManager.getUnique(m.cardId);
-        YGO.debug("Summoning " + card.getName() + " (" + card.getUniqueId() + ") for " + player);
-        if (location == Location.HAND) {
-            Hand hand = hands[player.index];
-            hand.removeCard(card, playerId);
+        YGO.debug("Summoning " + card.getName() + " (" + card.getId() + ") for " + summoner);
+        if (location == Location.Hand) {
+            hands.get(summoner).removeCard(card, playerId);
         }
-        if (summonType == SummonType.NORMAL_SUMMON || summonType == SummonType.SET) {
+        if (summonType == SummonType.NormalSummon || summonType == SummonType.Set) {
             card.normalSummonedOrSetThisTurn = true;
         }
-        field.placeCardOnField(card, Zone.Monster, player, new CardPlayMode(m.cardPlayMode), Location.FIELD);
+        field.placeCardOnField(card, Zone.Monster, summoner, new CardPlayMode(m.cardPlayMode), Location.Field);
+
+        // Add any continuous effects this card has (e.g. Milus Radiant)
+        registeredEffects.get(card).forEach(e -> {
+            if (e.getFlags().contains(Effect.Flag.Continuous)) {
+                activeEffects.get(card.getId()).add(e);
+                Gdx.app.log(TAG, "Instating continuous effect (" + e.getType() + ") " + e.getId() + " from " + card.getName());
+            }
+        });
+
+        // Check if there are any card effects listening for a monster being summoned
+        //TODO: Finish Trap Hole
+        if (summonType == SummonType.NormalSummon /** or flip summon */) {
+            for (Card c : CardManager.getCards()) {
+                if (c.getController() == playerId && c.getLocation() == Location.Field) {
+                    if (c.getType() == CardType.Trap && !c.spellTrapSetThisTurn) {
+                        Set<Effect> effects = registeredEffects.get(c);
+                        for (Effect e : effects) {
+                            if (e.getResponseCriteria().contains(Effect.Response.OnNormalSummon)) {
+                                if (e.getFilter().call(CoerceJavaToLua.coerce(card), CoerceJavaToLua.coerce(playerId)).toboolean()) {
+                                    final Dialog responseDialog = new Dialog("Response", skin);
+                                    TextButton yes = new TextButton("Yes", skin);
+                                    yes.getLabel().setFontScale(1.2f);
+                                    yes.setWidth(100);
+                                    yes.setHeight(30);
+                                    TextButton no = new TextButton("No", skin);
+                                    no.getLabel().setFontScale(1.2f);
+                                    no.setWidth(100);
+                                    no.setHeight(30);
+                                    responseDialog.text("Something happened. Active a card?");
+                                    responseDialog.button(yes);
+                                    responseDialog.button(no);
+                                    responseDialog.show(stage);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void handleSpellTrapSetMessage(SpellTrapSetMessage m) {
         Player player = Player.indexToPlayer(m.player);
         Card card = CardManager.getUnique(m.cardId);
-        if (Location.indexToLocation(m.location) == Location.HAND) {
-            Hand hand = hands[player.index];
-            hand.removeCard(card, playerId);
+        if (Location.indexToLocation(m.location) == Location.Hand) {
+            hands.get(player).removeCard(card, playerId);
         }
-        field.placeCardOnField(card, Zone.SpellTrap, player, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.FIELD);
+        Zone destination = card.isFieldSpell() ? Zone.FieldSpell : Zone.SpellTrap;
+        field.placeCardOnField(card, destination, player, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.Field);
+        card.spellTrapSetThisTurn = true;
     }
 
     public void handlePhaseChangeMessage(PhaseChangeMessage m) {
@@ -800,26 +878,24 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     private void showAttackSwordVisualsForEligibleMonsters() {
-        Cell[] zone = field.getZone(Zone.Monster, playerId);
-        for (Cell c : zone) {
-            if (c.hasCard() && c.card.canAttack()) {
-                attackSwordVisuals.put(c.index, new AttackSwordVisual(c));
-            }
-        }
+        field.getZone(Zone.Monster, playerId).stream().filter(c -> c.hasCard() && c.card.canAttack()).forEach(c -> {
+            attackSwordVisuals.put(c.index, new AttackSwordVisual(c));
+        });
     }
 
     public void handleNextPlayersTurnMessage(NextPlayersTurnMessage m) {
         turnPlayer = Player.valueOf(m.player);
         phaseChangeTextFlash.flash(turnPlayer.toString() + "'s Turn", 1f / 3f, 2f / 3f);
-        if (playerId == turnPlayer) {
+//        if (playerId == turnPlayer) {
             normalSummonsThisTurn = 0;
-            for (Cell c : field.getZone(Zone.Monster, playerId)) {
-                if (c.hasCard()) {
-                    c.card.attacksThisTurn = 0;
-                    c.card.normalSummonedOrSetThisTurn = false;
-                }
-            }
-        }
+            field.getZone(Zone.Monster, playerId).stream().filter(Cell::hasCard).forEach(c -> {
+                c.card.attacksThisTurn = 0;
+                c.card.normalSummonedOrSetThisTurn = false;
+            });
+            field.getZone(Zone.SpellTrap, playerId).stream().filter(Cell::hasCard).forEach(c -> {
+                c.card.spellTrapSetThisTurn = false;
+            });
+//        }
     }
 
     public void handleAttackInitiationMessage(AttackInitiationMessage m) {
@@ -832,12 +908,12 @@ public class PlayState extends GameState implements InputProcessor {
      */
     public void handleAttackMessage(AttackMessage m) {
         final Player conducting = Player.valueOf(m.player);
-        Cell[] zone = field.getZone(Zone.Monster, conducting.getOpponent());
+        List<Cell> cells = field.getZone(Zone.Monster, conducting.getOpponent());
         int index = m.targetCell;
         if (conducting == playerId) {
             intent = Intent.NONE;
         }
-        final Cell defendingCell = zone[index];
+        final Cell defendingCell = cells.get(index);
         final Cell attackingCell = field.getCellByIndex(conducting, Zone.Monster, m.sourceCell);
         int incomingAtkPower = attackingCell.card.getAtk();
         // Check if our monster is in defense mode
@@ -912,32 +988,36 @@ public class PlayState extends GameState implements InputProcessor {
         //Naive implementation for now
         Player activator = Player.valueOf(m.activator);
         Card card = CardManager.getUnique(m.cardId);
-        YGO.debug("Activating " + card.getName() + " (" + card.getUniqueId() + ") for " + activator);
-        Hand hand = hands[activator.index];
-        hand.removeCard(card, playerId);
+        YGO.debug("Activating " + card.getName() + " (" + card.getId() + ") for " + activator);
+        hands.get(activator).removeCard(card, playerId);
         Zone zone = Zone.SpellTrap;
         if (card.isFieldSpell()) {
             zone = Zone.FieldSpell;
         }
 
         // Place the card on the field
-        Cell cell = field.placeCardOnField(card, zone, activator, new CardPlayMode(CardPlayMode.FACE_UP), Location.FIELD);
+        Cell cell = field.placeCardOnField(card, zone, activator, new CardPlayMode(CardPlayMode.FACE_UP), Location.Field);
 
-        Effect effect = registeredEffects.get(card);
-        if (effect != null) {
-            if (effect.getActivationCriteria().contains(Effect.Criteria.OnActivation)) {
-                activeEffects.put(card.getUniqueId(), effect);
+        boolean hasContinuousEffect = false;
+        //TODO: Got rid of effect null check. Bad idea?
+        for (Effect e : registeredEffects.get(card)) {
+            if (e.getActivationCriteria().contains(Effect.Criteria.OnActivation)) {
+                if (e.getFlags().contains(Effect.Flag.Continuous)) {
+                    activeEffects.get(card.getId()).add(e);
+                    hasContinuousEffect = true;
+                }
+                else {
+                    e.getOperation().call(CoerceJavaToLua.coerce(activator));
+                }
             }
         }
-        // Activate its effect, if any
-//        card.onEffectActivation(activator);
 
-        if (!card.isFieldSpell()) {
+        if (!hasContinuousEffect) {
             DelayedEvents.schedule(() -> {
-                TweenAnimations.submit(card, cell, field.getZone(Zone.Graveyard, activator)[0], () -> {
-                    card.location = Location.GRAVEYARD;
+                TweenAnimations.submit(card, cell, field.getZone(Zone.Graveyard, activator).get(0), () -> {
+                    card.location = Location.Graveyard;
                     cell.card = null;
-                    MultiCardCell mcc = (MultiCardCell) field.getZone(Zone.Graveyard, activator)[0];
+                    MultiCardCell mcc = (MultiCardCell) field.getZone(Zone.Graveyard, activator).get(0);
                     mcc.cards.add(card);
                 });
             }, 1f);
@@ -955,17 +1035,51 @@ public class PlayState extends GameState implements InputProcessor {
         handleRetaliatoryDamageMessage(new RetaliatoryDamageMessage(victim, attackingCell, defendingCell, damage));
     }
 
+    public void destroyCard(Card card) {
+        destroyCardWithAnimation(field.getCellContainingCard(card), card.getOwner(), 1);
+    }
+
     private void destroyCardWithAnimation(Cell cell, Player owner, float delay) {
         explosions.add(new Explosion(cell));
         DelayedEvents.schedule(() -> {
+            Gdx.app.log(TAG, String.format("Destroying %s", cell.card.getName()));
             Card card = cell.card;
-            card.location = Location.GRAVEYARD;
+            card.location = Location.Graveyard;
+            card.setZone(Zone.Graveyard);
             card.overwritePlayMode(CardPlayMode.FACE_UP_ATTACK);
-            Cell[] graveyard = field.getZone(Zone.Graveyard, owner);
-            MultiCardCell mc = (MultiCardCell) graveyard[0];
+            MultiCardCell mc = (MultiCardCell) field.getZone(Zone.Graveyard, owner).get(0);
             mc.cards.add(cell.card);
             cell.card = null;
+
+            // Stop the destroyed card's effect, if it had one
+            List<Effect> effectsToRemove = new ArrayList<>();
+            activeEffects.get(card.getId()).forEach(effect -> {
+                // Continuous effects should be canceled once the card is destroyed
+                if (effect.getFlags().contains(Effect.Flag.Continuous)) {
+                    removeBuffsFromCards(card.getId(), effect.getId());
+                    effectsToRemove.add(effect);
+                }
+            });
+
+            // Delete the effects from the activeEffects map
+            effectsToRemove.forEach(e -> {
+                activeEffects.get(card.getId()).remove(e);
+                Gdx.app.log(TAG, "Removing effect " + e.getId() + " applied by " + card.getName());
+            });
+
+            TweenAnimations.submit(card, cell, field.getZone(Zone.Graveyard, owner).get(0), () -> {
+                card.location = Location.Graveyard;
+                cell.card = null;
+                MultiCardCell mcc = (MultiCardCell) field.getZone(Zone.Graveyard, owner).get(0);
+                mcc.cards.add(card);
+            });
         }, delay);
+    }
+
+    private void removeBuffsFromCards(UUID cardId, UUID effectId) {
+        CardManager.getCards().stream().filter(c -> c.isAffectedByBuff(cardId, effectId)).forEach(c -> {
+            c.removeBuff(cardId, effectId);
+        });
     }
 
     public void inflictDamage(Player target, DamageType damageType, int amount) {
@@ -977,6 +1091,7 @@ public class PlayState extends GameState implements InputProcessor {
 
         if (lifepointBars.get(target).currentLifePoints == 0) {
             YGO.info(target.getOpponent().toString() + " wins!");
+            // TODO: Win condition
         }
     }
 
@@ -997,12 +1112,10 @@ public class PlayState extends GameState implements InputProcessor {
         else {
             intent = Intent.ATTACKING;
             targetingCursors.clear();
-            for (Cell c : field.getZone(Zone.Monster, playerId.getOpponent())) {
-                if (c.hasCard()) {
-                    targetingCursors.add(new TargetingCursor(c));
-                    c.targetingCursorOn = true;
-                }
-            }
+            field.getZone(Zone.Monster, playerId.getOpponent()).stream().filter(Cell::hasCard).forEach(c -> {
+                targetingCursors.add(new TargetingCursor(c));
+                c.targetingCursorOn = true;
+            });
         }
     }
 
@@ -1044,6 +1157,10 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     public void registerEffect(Effect effect, Card card) {
-        registeredEffects.put(card, effect);
+        if (!registeredEffects.containsKey(card)) {
+            registeredEffects.put(card, new HashSet<>());
+        }
+        registeredEffects.get(card).add(effect);
+        Gdx.app.log(TAG, "Registered effect with type " + effect.getType() + " for " + card.getName());
     }
 }

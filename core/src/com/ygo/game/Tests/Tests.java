@@ -57,7 +57,7 @@ public class Tests {
                             if (z == Zone.SpellTrap && random.nextBoolean()) {
                                 playMode = CardPlayMode.FACE_DOWN;
                             }
-//                            field.placeCardOnField(new Card(), z, p, playMode, Location.FIELD);
+//                            field.placeCardOnField(new Card(), z, p, playMode, Location.Field);
                             break;
                     }
                 }

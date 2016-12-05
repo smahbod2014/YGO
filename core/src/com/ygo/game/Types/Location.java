@@ -1,7 +1,7 @@
 package com.ygo.game.Types;
 
 public enum Location {
-    HAND(0), FIELD(1), DECK(2), GRAVEYARD(3);
+    Hand(0), Field(1), Deck(2), Graveyard(3);
 
     public int index;
 

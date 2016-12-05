@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.collision.Ray;
-import com.badlogic.gdx.utils.Array;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.CardPlayMode;
 import com.ygo.game.Types.Location;
@@ -18,7 +17,13 @@ import com.ygo.game.Types.Zone;
 import com.ygo.game.utils.Utils;
 
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.ygo.game.Types.Player.*;
 import static com.ygo.game.Types.Zone.*;
@@ -38,8 +43,8 @@ public class Field {
 
     private ShapeRenderer sr;
     private DecalBatch decalBatch;
-    public Cell[][][] cells = new Cell[2][Zone.values().length][];
-    public Array<Cell> flatCells = new Array<Cell>();
+    public Map<Player, Map<Zone, List<Cell>>> cells = new HashMap<>();
+    public List<Cell> flatCells = new ArrayList<>();
     public static PerspectiveCamera perspectiveCamera;
     PlayState playState;
 
@@ -64,25 +69,26 @@ public class Field {
     }
 
     private void initCells(Player playerId) {
-        for (Player p : Player.values()) {
-            for (Zone z : Zone.values()) {
-                int quantity;
-                switch (z) {
-                    case Monster:
-                    case SpellTrap:
-                        quantity = 5;
-                        break;
-                    case Pendulum:
-                        quantity = 2;
-                        break;
-                    default:
-                        quantity = 1;
-                        break;
-                }
-
-                cells[p.index][z.index] = new Cell[quantity];
-            }
-        }
+        Arrays.stream(Player.values())
+                .forEach(p -> {
+                    cells.put(p, new HashMap<>());
+                    Arrays.stream(Zone.values()).forEach(z -> {
+                        int quantity;
+                        switch (z) {
+                            case Monster:
+                            case SpellTrap:
+                                quantity = 5;
+                                break;
+                            case Pendulum:
+                                quantity = 2;
+                                break;
+                            default:
+                                quantity = 1;
+                                break;
+                        }
+                        cells.get(p).put(z, new ArrayList<>(quantity));
+                    });
+                });
 
         float sideWidth = 1.3f;
         float padding = 10f * .02f;
@@ -96,58 +102,56 @@ public class Field {
         }
         Player p1 = Player.indexToPlayer(player1);
         Player p2 = Player.indexToPlayer(player2);
-        cells[player1][ExtraDeck.index][0] = new MultiCardCell(-5, 5, sideWidth, height, p1);
-        cells[player1][Pendulum.index][0] = new Cell(-5, 5 - height * 1 - padding * 1, sideWidth, height, p1);
-        cells[player1][FieldSpell.index][0] = new Cell(-5, 5 - height * 2 - padding * 2, sideWidth, height, p1);
+        cells.get(p1).get(ExtraDeck).add(new MultiCardCell(-5, 5, sideWidth, height, p1));
+        cells.get(p1).get(Pendulum).add(new Cell(-5, 5 - height * 1 - padding * 1, sideWidth, height, p1));
+        cells.get(p1).get(FieldSpell).add(new Cell(-5, 5 - height * 2 - padding * 2, sideWidth, height, p1));
 
         float gapFromSide = 10f * 0.03f;
         float topBottomMargin = 10f * 0.1f;
         float startX = -5 + sideWidth + gapFromSide;
         for (int i = 0; i < 5; i++) {
-            cells[player1][SpellTrap.index][i] = new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1, i);
+            cells.get(p1).get(SpellTrap).add(new Cell(startX + height * i, 5 - topBottomMargin, height, height, p1, i));
         }
         for (int i = 0; i < 5; i++) {
-            cells[player1][Monster.index][i] = new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1, i);
+            cells.get(p1).get(Monster).add(new Cell(startX + height * i, 5 - topBottomMargin - height, height, height, p1, i));
         }
 
         float rightStartX = startX + height * 5 + gapFromSide;
-        cells[player1][Deck.index][0] = new MultiCardCell(rightStartX, 5, sideWidth, height, p1);
-        cells[player1][Pendulum.index][1] = new Cell(rightStartX, 5 - height * 1 - padding * 1, sideWidth, height, p1);
-        cells[player1][Graveyard.index][0] = new MultiCardCell(rightStartX, 5 - height * 2 - padding * 2, sideWidth, height, p1);
-        cells[player1][Banished.index][0] = new MultiCardCell(rightStartX + padding + sideWidth, 5 - height * 2 - padding * 2, sideWidth, height, p1);
+        cells.get(p1).get(Deck).add(new MultiCardCell(rightStartX, 5, sideWidth, height, p1));
+        cells.get(p1).get(Pendulum).add(new Cell(rightStartX, 5 - height * 1 - padding * 1, sideWidth, height, p1));
+        cells.get(p1).get(Graveyard).add(new MultiCardCell(rightStartX, 5 - height * 2 - padding * 2, sideWidth, height, p1));
+        cells.get(p1).get(Banished).add(new MultiCardCell(rightStartX + padding + sideWidth, 5 - height * 2 - padding * 2, sideWidth, height, p1));
 
 
-        cells[player2][ExtraDeck.index][0] = new MultiCardCell(rightStartX, 5 - height * 5 - padding * 5, sideWidth, height, p2);
-        cells[player2][Pendulum.index][0] = new Cell(rightStartX, 5 - height * 4 - padding * 4, sideWidth, height, p2);
-        cells[player2][FieldSpell.index][0] = new Cell(rightStartX, 5 - height * 3 - padding * 3, sideWidth, height, p2);
+        cells.get(p2).get(ExtraDeck).add(new MultiCardCell(rightStartX, 5 - height * 5 - padding * 5, sideWidth, height, p2));
+        cells.get(p2).get(Pendulum).add(new Cell(rightStartX, 5 - height * 4 - padding * 4, sideWidth, height, p2));
+        cells.get(p2).get(FieldSpell).add(new Cell(rightStartX, 5 - height * 3 - padding * 3, sideWidth, height, p2));
 
-        cells[player2][Graveyard.index][0] = new MultiCardCell(-5, 5 - height * 3 - padding * 3, sideWidth, height, p2);
-        cells[player2][Banished.index][0] = new MultiCardCell(-5 - padding - sideWidth, 5 - height * 3 - padding * 3, sideWidth, height, p2);
-        cells[player2][Pendulum.index][1] = new Cell(-5, 5 - height * 4 - padding * 4, sideWidth, height, p2);
-        cells[player2][Deck.index][0] = new MultiCardCell(-5, 5 - height * 5 - padding * 5, sideWidth, height, p2);
+        cells.get(p2).get(Graveyard).add(new MultiCardCell(-5, 5 - height * 3 - padding * 3, sideWidth, height, p2));
+        cells.get(p2).get(Banished).add(new MultiCardCell(-5 - padding - sideWidth, 5 - height * 3 - padding * 3, sideWidth, height, p2));
+        cells.get(p2).get(Pendulum).add(new Cell(-5, 5 - height * 4 - padding * 4, sideWidth, height, p2));
+        cells.get(p2).get(Deck).add(new MultiCardCell(-5, 5 - height * 5 - padding * 5, sideWidth, height, p2));
 
         for (int i = 0; i < 5; i++) {
-            cells[player2][SpellTrap.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2, 4 - i);
+            cells.get(p2).get(SpellTrap).add(new Cell(startX + height * i, -5 + topBottomMargin + height, height, height, p2, 4 - i));
         }
         for (int i = 0; i < 5; i++) {
-            cells[player2][Monster.index][i] = new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2, 4 - i);
+            cells.get(p2).get(Monster).add(new Cell(startX + height * i, -5 + topBottomMargin + height * 2, height, height, p2, 4 - i));
         }
 
         //if we are player 1, we need to reverse player 2's monster/spelltrap zones
         if (playerId == PLAYER_1) {
-            Utils.reverseArray(getZone(Monster, PLAYER_2));
-            Utils.reverseArray(getZone(SpellTrap, PLAYER_2));
+            Collections.reverse(getZone(Monster, PLAYER_2));
+            Collections.reverse(getZone(SpellTrap, PLAYER_2));
         }
         else {
-            Utils.reverseArray(getZone(Monster, PLAYER_1));
-            Utils.reverseArray(getZone(SpellTrap, PLAYER_1));
+            Collections.reverse(getZone(Monster, PLAYER_1));
+            Collections.reverse(getZone(SpellTrap, PLAYER_1));
         }
 
         for (Player p : Player.values()) {
             for (Zone z : Zone.values()) {
-                for (Cell c : getZone(z, p)) {
-                    flatCells.add(c);
-                }
+                flatCells.addAll(getZone(z, p));
             }
         }
     }
@@ -158,44 +162,53 @@ public class Field {
 
     /** Returns the cell the card was placed in */
     public Cell placeCardOnField(Card card, Zone destination, Player playerSide, CardPlayMode cardPlayMode, Location location) {
-        Cell[] zone = getZone(destination, playerSide);
-        int firstAvailable = getEmptyCell(zone);
-        zone[firstAvailable].card = card;
+        List<Cell> cells = getZone(destination, playerSide);
+        int firstAvailable = getEmptyCell(cells);
+        cells.get(firstAvailable).card = card;
         card.location = location;
+        card.setZone(destination);
         card.overwritePlayMode(cardPlayMode);
-        return zone[firstAvailable];
+        return cells.get(firstAvailable);
         //this is where we would fire "onSummon" events
     }
 
     public void placeCardsInZone(List<Card> cards, Zone destination, Player playerSide, CardPlayMode cardPlayMode, Location location) {
-        Cell[] zone = getZone(destination, playerSide);
-        MultiCardCell mc = (MultiCardCell) zone[0];
+        MultiCardCell mc = (MultiCardCell) getZone(destination, playerSide).get(0);
         mc.cards.addAll(cards);
         for (Card card : cards) {
             card.location = location;
+            card.setZone(destination);
             card.overwritePlayMode(cardPlayMode);
         }
+    }
+
+    public Cell getCellContainingCard(Card card) {
+        Optional<Cell> cell = flatCells.stream().filter(c -> !(c instanceof MultiCardCell) && c.hasCard() && c.card.getId().equals(card.getId())).findFirst();
+        if (cell.isPresent()) {
+            return cell.get();
+        }
+        Gdx.app.error("Field", "Card " + card + " was not found in any cell");
+        throw new RuntimeException();
     }
 
     /**
      * Fetches an empty cell in a zone. Up to the user whether it's the first empty
      * cell, a random empty cell, etc.
-     *
-     * @param zone
+     * @param cells
      * @return
      */
-    private int getEmptyCell(Cell[] zone) {
+    private int getEmptyCell(List<Cell> cells) {
         // subject to different implementations
-        for (int i = 0; i < zone.length; i++) {
-            if (zone[i].card == null) {
+        for (int i = 0; i < cells.size(); i++) {
+            if (cells.get(i).card == null) {
                 return i;
             }
         }
         return -1;
     }
 
-    public Cell[] getZone(Zone zone, Player player) {
-        return cells[player.index][zone.index];
+    public List<Cell> getZone(Zone zone, Player player) {
+        return cells.get(player).get(zone);
     }
 
     public void renderGrid() {
@@ -204,15 +217,24 @@ public class Field {
 //        sr.setColor(Color.RED);
 //        sr.box(-5 + xoff, 0, 5, 10, 0, 10);
         sr.setColor(Color.WHITE);
-        for (Player p : Player.values()) {
-            for (Zone z : Zone.values()) {
-                for (int i = 0; i < cells[p.index][z.index].length; i++) {
-                    if (cells[p.index][z.index][i] != null) {
-                        cells[p.index][z.index][i].draw(sr);
+//        for (Player p : Player.values()) {
+//            for (Zone z : Zone.values()) {
+//                for (int i = 0; i < cells[p.index][z.index].length; i++) {
+//                    if (cells[p.index][z.index][i] != null) {
+//                        cells[p.index][z.index][i].draw(sr);
+//                    }
+//                }
+//            }
+//        }
+        cells.forEach((p, z) -> {
+            z.values().forEach(cells -> {
+                cells.forEach(c -> {
+                    if (c != null) {
+                        c.draw(sr);
                     }
-                }
-            }
-        }
+                });
+            });
+        });
         sr.end();
         Utils.revertViewport();
     }
@@ -223,15 +245,24 @@ public class Field {
      */
     public void renderCards(Player playerId, DecalBatch decalBatch2) {
         Utils.prepareViewport();
-        for (Player p : Player.values()) {
-            for (Zone z : Zone.values()) {
-                for (int i = 0; i < cells[p.index][z.index].length; i++) {
-                    if (cells[p.index][z.index][i] != null) {
-                        cells[p.index][z.index][i].drawCard(decalBatch, playerId);
+//        for (Player p : Player.values()) {
+//            for (Zone z : Zone.values()) {
+//                for (int i = 0; i < cells[p.index][z.index].length; i++) {
+//                    if (cells[p.index][z.index][i] != null) {
+//                        cells[p.index][z.index][i].drawCard(decalBatch, playerId);
+//                    }
+//                }
+//            }
+//        }
+        cells.forEach((p, z) -> {
+            z.values().forEach(cells -> {
+                cells.forEach(c -> {
+                    if (c != null) {
+                        c.drawCard(decalBatch, playerId);
                     }
-                }
-            }
-        }
+                });
+            });
+        });
         decalBatch.flush();
         Utils.revertViewport();
     }
@@ -255,8 +286,7 @@ public class Field {
 
 
     public Card removeCard(Player player, Zone where, int which) {
-        Cell[] zone = getZone(where, player);
-        MultiCardCell mc = (MultiCardCell) zone[0];
+        MultiCardCell mc = (MultiCardCell) getZone(where, player).get(0);
         if (which == TOP_CARD) {
             which = mc.cards.size() - 1;
         }
@@ -272,7 +302,7 @@ public class Field {
         boolean cardWasClicked = false;
         for (Player p : Player.values()) {
             for (Zone z : Zone.values()) {
-                for (Cell c : cells[p.index][z.index]) {
+                for (Cell c : getZone(z, p)) {
                     c.isHighlighted =  c.testRay(ray);
                     if (c.isHighlighted && c.hasCard() && playState.clicked()) {
                         if (c.owner == playState.playerId) {
@@ -288,10 +318,6 @@ public class Field {
             }
         }
 
-        if (playState.clicked() && !cardWasClicked) {
-//            playState.hideCardMenu();
-        }
-
         return cardWasClicked;
     }
 
@@ -302,8 +328,7 @@ public class Field {
     }
 
     public Cell getCellByIndex(Player player, Zone zone, int index) {
-        Cell[] cells = getZone(zone, player);
-        for (Cell c : cells) {
+        for (Cell c : getZone(zone, player)) {
             if (c.index == index) {
                 return c;
             }
@@ -311,6 +336,7 @@ public class Field {
         return null;
     }
 
+    @Deprecated
     public void drawDirectAttackLine(Player attacker, int cellIndexOrigin) {
         drawAttackLine(attacker, cellIndexOrigin, -1);
     }

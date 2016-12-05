@@ -16,6 +16,7 @@ import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class LuaFunctions {
 
@@ -85,8 +86,26 @@ public class LuaFunctions {
 
         @Override
         public LuaValue call(LuaValue target, LuaValue amount) {
-            function.accept(Player.valueOf(target.tojstring()), amount.toint());
+            function.accept(luaToJava(target, Player.class), amount.toint());
             return NIL;
         }
+    }
+
+    public static class DestroyCard extends OneArgFunction {
+        Consumer<Card> function;
+
+        public DestroyCard(Consumer<Card> function) {
+            this.function = function;
+        }
+
+        @Override
+        public LuaValue call(LuaValue card) {
+            function.accept(luaToJava(card, Card.class));
+            return NIL;
+        }
+    }
+
+    private static <T> T luaToJava(LuaValue arg, Class<T> clazz) {
+        return clazz.cast(CoerceLuaToJava.coerce(arg, clazz));
     }
 }

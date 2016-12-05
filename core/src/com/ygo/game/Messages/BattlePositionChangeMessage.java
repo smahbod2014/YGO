@@ -11,7 +11,7 @@ public class BattlePositionChangeMessage {
     public int battlePosition;
 
     public BattlePositionChangeMessage(Card card, CardPlayMode battlePosition) {
-        this.cardId = card.getUniqueId().toString();
+        this.cardId = card.getId().toString();
         this.battlePosition = battlePosition.getPlayMode();
     }
 
