@@ -1,6 +1,5 @@
 Swordsman of Landstar
 Change of Heart
-Trap Hole
 Gaia the Fierce Knight
 Milus Radiant
 Waboku
@@ -19,3 +18,4 @@ Spirit of the Harp
 Dian Keto the Cure Master
 Yami
 Baby Dragon
+Trap Hole

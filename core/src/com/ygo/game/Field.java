@@ -187,6 +187,7 @@ public class Field {
         if (cell.isPresent()) {
             return cell.get();
         }
+        //TODO: This shouldn't throw an exception
         Gdx.app.error("Field", "Card " + card + " was not found in any cell");
         throw new RuntimeException();
     }

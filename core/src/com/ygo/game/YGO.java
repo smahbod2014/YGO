@@ -19,7 +19,9 @@ public class YGO extends ApplicationAdapter {
     public static final int GAME_WIDTH = 1280;
     public static final int GAME_HEIGHT = 720;
     public static BitmapFont cardStatsFont;
-    public static Sprite targetingCursor;
+    public static Texture targetingCursor;
+    /** Used to show that a card can be activated when a response dialog appears */
+    public static Texture cardActivationCursor;
 
     @Override
     public void create() {
@@ -37,8 +39,9 @@ public class YGO extends ApplicationAdapter {
         generator.dispose();
 
         Card.FACE_DOWN_CARD_TEXTURE = new TextureRegion(new Texture("cards/cover.jpg"));
+        cardActivationCursor = new Texture("activate_indicator.png");
+        targetingCursor = new Texture("targeting_cursor.png");
 
-        TargetingCursor.cursor = new Texture("targeting_cursor.png");
         Explosion.spritesheet = new Texture("explosion_spritesheet.png");
         AttackSwordVisual.sword = new Texture("attack_sword.png");
         Cannonball.cannonball = new Texture("attack_sword.png");

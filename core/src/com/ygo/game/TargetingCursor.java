@@ -5,32 +5,37 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.ygo.game.Types.Zone;
 import com.ygo.game.utils.Utils;
 
 public class TargetingCursor {
 
     private enum State { EXPANDING, CONTRACTING }
 
-    public static Texture cursor;
-
     public Sprite sprite;
     public float scalingTime = 0.75f;
     public float targetScaling = 0.75f;
     private float elapsedTime;
     private State state;
+    private Texture texture;
+    private Cell cell;
 
+    @Deprecated
     public TargetingCursor(float x, float y) {
+        this.texture = YGO.targetingCursor;
         init(x, y);
     }
 
-    public TargetingCursor(Cell cell) {
+    public TargetingCursor(Cell cell, Texture texture) {
         Vector2 pos = Utils.worldPerspectiveToScreen(cell.position.x + cell.size.x / 2, cell.position.y - cell.size.y / 2, Field.perspectiveCamera);
+        this.texture = texture;
+        this.cell = cell;
         init(pos.x, pos.y);
     }
 
     private void init(float x, float y) {
         state = State.CONTRACTING;
-        sprite = new Sprite(cursor);
+        sprite = new Sprite(texture);
         sprite.setSize(80, 80);
         sprite.setOriginCenter();
         sprite.setPosition(x - sprite.getWidth() / 2, y - sprite.getHeight() / 2);
@@ -63,5 +68,9 @@ public class TargetingCursor {
 
     public void render(SpriteBatch sb) {
         sprite.draw(sb);
+    }
+
+    public Cell getCell() {
+        return cell;
     }
 }
