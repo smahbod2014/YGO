@@ -35,7 +35,7 @@ public class Effect {
 
     /** List of criteria that trigger this event */
     private List<Criteria> activationCriteria = new ArrayList<>();
-    /** What kind of events this effect should activate in response to */
+    /** What kind of events this effect should activate in response to. Mainly used for trap cards and quick effects */
     private List<Response> responses = new ArrayList<>();
     /** This effect's class */
     private Type type = Type.None;
@@ -156,9 +156,11 @@ public class Effect {
     public Buff getBuff() {
         switch (type) {
             case ModifyAtk:
+                return new StatBuff(value, Buff.Type.ModifyAtk);
             case ModifyDef:
+                return new StatBuff(value, Buff.Type.ModifyDef);
             case ModifyLevel:
-                return new StatBuff(value, type);
+                return new StatBuff(value, Buff.Type.ModifyLevel);
             default:
                 Gdx.app.log("Effect", "Unimplemented buff case");
                 return null;

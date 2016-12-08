@@ -230,18 +230,18 @@ public class Card {
     }
 
     public int getAtk() {
-        return getBuffedStat(Effect.Type.ModifyAtk, this::getOriginalAtk);
+        return getBuffedStat(Buff.Type.ModifyAtk, this::getOriginalAtk);
     }
 
     public int getDef() {
-        return getBuffedStat(Effect.Type.ModifyDef, this::getOriginalDef);
+        return getBuffedStat(Buff.Type.ModifyDef, this::getOriginalDef);
     }
 
     public int getLevel() {
-        return getBuffedStat(Effect.Type.ModifyLevel, this::getOriginalLevel);
+        return getBuffedStat(Buff.Type.ModifyLevel, this::getOriginalLevel);
     }
 
-    private int getBuffedStat(Effect.Type type, Supplier<Integer> baseStatFunc) {
+    private int getBuffedStat(Buff.Type type, Supplier<Integer> baseStatFunc) {
         int boostedStat = 0;
         for (Map<UUID, Buff> b : buffs.values()) {
             for (Buff buff : b.values()) {
@@ -342,5 +342,9 @@ public class Card {
 
     public Location getLocation() {
         return location;
+    }
+
+    public String nameId() {
+        return getName() + "(" + getId() + ")";
     }
 }

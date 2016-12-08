@@ -70,6 +70,7 @@ import com.ygo.game.Types.ResponseDialog;
 import com.ygo.game.Types.SummonType;
 import com.ygo.game.Types.Zone;
 import com.ygo.game.YGO;
+import com.ygo.game.buffs.Buff;
 import com.ygo.game.db.CardDao;
 import com.ygo.game.listeners.ActivateButtonListener;
 import com.ygo.game.listeners.AttackButtonListener;
@@ -131,6 +132,7 @@ public class PlayState extends GameState implements InputProcessor {
     Map<Card, Set<Effect>> registeredEffects = new HashMap<>();
     /** Card ID -> Effect ID -> Effect */
     Map<UUID, Set<Effect>> activeEffects = new HashMap<>();
+    Map<Player, Set<Buff>> playerBuffs = new HashMap<>();
     Cannonball cannonball;
     Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<>();
     Card currentlySelectedCard;
@@ -551,19 +553,13 @@ public class PlayState extends GameState implements InputProcessor {
                 addButtonToTable(btnNormalSummon);
                 addButtonToTable(btnSet);
             }
-            debug("Monster card clicked (" + card.getName() + ")");
         }
         else if (card.getType() == CardType.Spell) {
             addButtonToTable(btnActivate);
             addButtonToTable(btnSet);
-            debug("Spell card clicked (" + card.getName() + ")");
         }
         else if (card.getType() == CardType.Trap) {
             addButtonToTable(btnSet);
-            debug("Trap card clicked (" + card.getName() + ")");
-        }
-        else {
-            debug("ERROR: Unknown card type clicked: (" + card.getName() + ")");
         }
     }
 
@@ -855,6 +851,7 @@ public class PlayState extends GameState implements InputProcessor {
         Zone destination = card.isFieldSpell() ? Zone.FieldSpell : Zone.SpellTrap;
         field.placeCardOnField(card, destination, player, new CardPlayMode(CardPlayMode.FACE_DOWN), Location.Field);
         card.spellTrapSetThisTurn = true;
+        Gdx.app.log(TAG, "Set " + card.nameId());
     }
 
     public void handlePhaseChangeMessage(PhaseChangeMessage m) {
@@ -1215,5 +1212,9 @@ public class PlayState extends GameState implements InputProcessor {
         }
         registeredEffects.get(card).add(effect);
         Gdx.app.log(TAG, "Registered effect with type " + effect.getType() + " for " + card.getName());
+    }
+
+    public void applyBuff(Player target, Buff.Type type, Phase expiration, int passNumber) {
+
     }
 }

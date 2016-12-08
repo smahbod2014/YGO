@@ -1,14 +1,16 @@
 package com.ygo.game;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
 import com.ygo.game.GameStates.PlayState;
 import com.ygo.game.Types.Location;
 import com.ygo.game.Types.Player;
 import com.ygo.game.utils.Utils;
 
-import static com.ygo.game.YGO.debug;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class Hand {
     private static final float DOWNSIZING_RATIO = 2f / 3f;
@@ -18,7 +20,7 @@ public class Hand {
     public static final float CARD_GAP_FAR = 15 * DOWNSIZING_RATIO;
     public static final int CARD_LIMIT = 7;
 
-    private Array<Card> cards = new Array<Card>();
+    private List<Card> cards = new ArrayList<>();
 
     private float centerX;
     private Player player;
@@ -37,7 +39,12 @@ public class Hand {
     }
 
     public void removeCard(Card card, Player fromPerspective) {
-        cards.removeValue(card, false);
+        for (int i = 0; i < cards.size(); i++) {
+            if (cards.get(i).getId().equals(card.getId())) {
+                cards.remove(i);
+                break;
+            }
+        }
         refreshCardPositions(fromPerspective);
     }
 
@@ -47,26 +54,22 @@ public class Hand {
 
         //"advance" is the distance between cards plus the card width
         float advance;
-        if (cards.size <= 5) {
+        if (cards.size() <= 5) {
             advance = cardSize.x + gap;
         }
         else {
-            advance = cardSize.x + gap - gap * 0.1f * (cards.size - 5);
+            advance = cardSize.x + gap - gap * 0.1f * (cards.size() - 5);
         }
 
         float y = fromPerspective == player ? 50f : 550;
 
-        float width = advance * (cards.size - 1) + Field.CARD_WIDTH_IN_CELL;
+        float width = advance * (cards.size() - 1) + Field.CARD_WIDTH_IN_CELL;
         float x = centerX - width / 2;
         for (Card card : cards) {
 //            card.draw(sb, x, centerY, Field.CARD_WIDTH_IN_CELL, Field.CARD_HEIGHT_IN_CELL);
             card.positionInHand.set(x, y);
             x += advance;
         }
-    }
-
-    public Card getCard(int position) {
-        return cards.get(position);
     }
 
     public boolean handleInput(float dt, Player playerId) {
@@ -91,7 +94,7 @@ public class Hand {
                 card.isHovering = true;
                 //detect click
                 if (playState.clicked()) {
-                    debug("Clicked inside card!");
+                    Gdx.app.log("Hand", "Clicked " + card.nameId());
                     playState.showCardMenu(card);
                     cardWasClicked = true;
                 }
@@ -101,16 +104,10 @@ public class Hand {
             }
         }
 
-        if (playerId == player && playState.clicked() && !cardWasClicked) {
-//            playState.hideCardMenu();
-        }
-
         return cardWasClicked;
     }
 
     public void draw(SpriteBatch sb, Player playerId) {
-        for (Card card : cards) {
-            card.draw(sb, player != playerId);
-        }
+        cards.forEach(c -> c.draw(sb, player != playerId));
     }
 }
