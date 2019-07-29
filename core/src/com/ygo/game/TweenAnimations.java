@@ -18,7 +18,7 @@ public class TweenAnimations {
 
     public static void update(float dt) {
         List<Data> dataToRemove = new ArrayList<>();
-        data.forEach(d -> {
+        for (Data d : data) {
             d.t += dt;
             float progress = Interpolation.pow2.apply(Math.min(1f, d.t / d.requiredTime));
             Vector3 pos = Utils.lerpVector3(d.origin.getPaddedPosition3(), d.destination.getPaddedPosition3(), progress);
@@ -29,7 +29,7 @@ public class TweenAnimations {
                 d.completionCallback.run();
                 dataToRemove.add(d);
             }
-        });
+        }
 
         data.removeAll(dataToRemove);
     }

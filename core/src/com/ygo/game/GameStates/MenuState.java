@@ -25,9 +25,6 @@ import com.ygo.game.YGOServer;
 
 import java.io.IOException;
 
-/**
- * Created by semahbod on 10/8/16.
- */
 public class MenuState extends GameState {
     public static final Object lock = new Object();
     OrthographicCamera camera;

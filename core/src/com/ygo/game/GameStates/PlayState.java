@@ -97,9 +97,6 @@ import java.util.stream.Collectors;
 import static com.ygo.game.YGO.debug;
 import static com.ygo.game.YGO.info;
 
-/**
- * Created by semahbod on 10/8/16.
- */
 public class PlayState extends GameState implements InputProcessor {
 
     private static final int MAXIMUM_NORMAL_SUMMONS = 1;
@@ -109,48 +106,48 @@ public class PlayState extends GameState implements InputProcessor {
     private enum Intent {NONE, ATTACKING}
 
     public OrthographicCamera camera;
-    SpriteBatch batch;
-    ShapeRenderer shapeRenderer;
-    DecalBatch decalBatch;
+    private SpriteBatch batch;
+    private ShapeRenderer shapeRenderer;
+    private DecalBatch decalBatch;
     public Field field;
-    Map<Player, Hand> hands = new HashMap<>();
-    TextFlash phaseChangeTextFlash;
-    Map<Player, TextFlash> damageTextFlashes;
+    private Map<Player, Hand> hands = new HashMap<>();
+    private TextFlash phaseChangeTextFlash;
+    private Map<Player, TextFlash> damageTextFlashes;
 
-    Vector2 mouseDown = new Vector2();
-    boolean mouseClicked = false;
-    Skin skin;
-    Stage stage;
-    Table buttonTable, phaseTable;
-    TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet, btnAttack, btnChangePosition,
-            btnDrawPhase, btnStandbyPhase, btnMainPhase1, btnBattlePhase, btnMainPhase2, btnEndPhase;
-    Array<TextButton> phaseButtons = new Array<TextButton>();
-    Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
-    Array<Explosion> explosions = new Array<Explosion>();
-    List<TargetingCursor> activationIndicators = new ArrayList<>();
-    Map<Player, Lifepoints> lifepointBars = new HashMap<>();
-    Map<Card, Set<Effect>> registeredEffects = new HashMap<>();
+    private Vector2 mouseDown = new Vector2();
+    private boolean mouseClicked = false;
+    private Skin skin;
+    private Stage stage;
+    private Table buttonTable, phaseTable;
+    private TextButton btnActivate, btnNormalSummon, btnSpecialSummon, btnSet, btnAttack, btnChangePosition,
+             btnDrawPhase, btnStandbyPhase, btnMainPhase1, btnBattlePhase, btnMainPhase2, btnEndPhase;
+    private Array<TextButton> phaseButtons = new Array<TextButton>();
+    private Array<TargetingCursor> targetingCursors = new Array<TargetingCursor>();
+    private Array<Explosion> explosions = new Array<Explosion>();
+    private List<TargetingCursor> activationIndicators = new ArrayList<>();
+    private Map<Player, Lifepoints> lifepointBars = new HashMap<>();
+    private Map<Card, Set<Effect>> registeredEffects = new HashMap<>();
     /** Card ID -> Effect ID -> Effect */
-    Map<UUID, Set<Effect>> activeEffects = new HashMap<>();
-    Map<Player, Set<Buff>> playerBuffs = new HashMap<>();
-    Cannonball cannonball;
-    Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<>();
-    Card currentlySelectedCard;
-    Cell currentlySelectedCell;
+    private Map<UUID, Set<Effect>> activeEffects = new HashMap<>();
+    private Map<Player, Set<Buff>> playerBuffs = new HashMap<>();
+    private Cannonball cannonball;
+    private Map<Integer, AttackSwordVisual> attackSwordVisuals = new HashMap<>();
+    private Card currentlySelectedCard;
+    private Cell currentlySelectedCell;
     public Player turnPlayer = Player.PLAYER_1;
     public Player playerId;
-    Phase currentPhase;
-    Server server;
-    Client client;
-    boolean isServer;
-    Dialog responseDialog;
+    private Phase currentPhase;
+    private Server server;
+    private Client client;
+    private boolean isServer;
+    private Dialog responseDialog;
     /** How many normal summons has the player conducted this turn? */
-    int normalSummonsThisTurn;
-    Intent intent;
-    boolean attackTakingPlace;
-    CardDao dao;
+    private int normalSummonsThisTurn;
+    private Intent intent;
+    private boolean attackTakingPlace;
+    private CardDao dao;
     /** Will be set to the card that triggered a card response */
-    Card offendingCard;
+    private Card offendingCard;
 
     public PlayState(Server server, ServerListener serverListener, Client client) {
         this.server = server;
@@ -1127,9 +1124,10 @@ public class PlayState extends GameState implements InputProcessor {
     }
 
     private void removeBuffsFromCards(UUID cardId, UUID effectId) {
-        CardManager.getCards().stream().filter(c -> c.isAffectedByBuff(cardId, effectId)).forEach(c -> {
-            c.removeBuff(cardId, effectId);
-        });
+        CardManager.getCards()
+                .stream()
+                .filter(card -> card.isAffectedByBuff(cardId, effectId))
+                .forEach(card -> card.removeBuff(cardId, effectId));
     }
 
     public void inflictDamage(Player target, DamageType damageType, int amount) {

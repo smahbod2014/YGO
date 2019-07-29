@@ -38,7 +38,6 @@ import java.util.function.Supplier;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Card {
-
     public static final float THICKNESS = 0.0125f;
     public static TextureRegion FACE_DOWN_CARD_TEXTURE;
     public int maximumNumberOfAttacks = 1;

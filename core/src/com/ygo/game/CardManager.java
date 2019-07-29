@@ -14,6 +14,7 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,9 +25,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Created by semahbod on 10/8/16.
- */
 public class CardManager {
 
     @Deprecated
@@ -59,7 +57,7 @@ public class CardManager {
     }
 
     public static List<Card> getCards() {
-        return cardsInPlay.values().stream().collect(Collectors.toList());
+        return new ArrayList<>(cardsInPlay.values());
     }
 
     @Deprecated
